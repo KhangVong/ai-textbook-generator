@@ -3,8 +3,8 @@ import { streamText, generateObject, generateText } from 'ai';
 import { z } from 'zod';
 import { NextResponse } from 'next/server';
 
-// Allow responses up to 60 seconds
-export const maxDuration = 60;
+// Use edge runtime to bypass Vercel's 10-second serverless function timeout
+export const runtime = 'edge';
 
 // Outline Generation Schema
 const outlineSchema = z.object({
