@@ -4,12 +4,17 @@ import React, { useState } from 'react';
 import { useTextbookStore } from '@/store/useTextbookStore';
 import { BookOpen, Sparkles, Loader2 } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
+import { useAuth } from '@clerk/nextjs';
+import { supabase } from '@/lib/supabase';
+import { useRouter } from 'next/navigation';
 
 export const NlpWizard = () => {
   const [prompt, setPrompt] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { apiKey, baseURL, modelName, setOutline, setStatus, setTitle } = useTextbookStore();
+  const { userId } = useAuth();
+  const router = useRouter();
 
   const handleGenerate = async () => {
     if (!prompt.trim()) return;
@@ -57,9 +62,28 @@ export const NlpWizard = () => {
           }));
         };
         
-        setOutline(processOutline(data.outline));
-        setTitle(prompt.length > 30 ? prompt.substring(0, 30) + '...' : prompt);
-        setStatus('EDITING_OUTLINE');
+        const finalOutline = processOutline(data.outline);
+        const finalTitle = prompt.length > 30 ? prompt.substring(0, 30) + '...' : prompt;
+        
+        if (userId) {
+          const { data: insertedProject, error: dbError } = await supabase
+            .from('projects')
+            .insert({
+              user_id: userId,
+              title: finalTitle,
+              outline_data: finalOutline
+            })
+            .select('id')
+            .single();
+
+          if (dbError) throw new Error('Failed to save project to database');
+          
+          router.push(`/book/${insertedProject.id}`);
+        } else {
+          setOutline(finalOutline);
+          setTitle(finalTitle);
+          setStatus('EDITING_OUTLINE');
+        }
       } else {
         throw new Error('Invalid outline format received from AI');
       }

@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { useTextbookStore, OutlineNode } from '@/store/useTextbookStore';
+import { supabase } from '@/lib/supabase';
 
 export const useGenerationEngine = () => {
   const { outline, apiKey, baseURL, modelName, updateNodeContent, setStatus } = useTextbookStore();
@@ -64,6 +65,14 @@ export const useGenerationEngine = () => {
         }
       } catch (err) {
         console.error(`Error generating content for ${node.title}:`, err);
+      }
+      
+      const currentState = useTextbookStore.getState();
+      if (currentState.activeProjectId) {
+        await supabase
+          .from('projects')
+          .update({ outline_data: currentState.outline })
+          .eq('id', currentState.activeProjectId);
       }
       
       completed++;

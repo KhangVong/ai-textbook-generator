@@ -23,6 +23,7 @@ interface TextbookState {
   currentView: 'READ' | 'MINDMAP';
   isEditMode: boolean;
   selectedNodeId: string | null;
+  activeProjectId: string | null;
 
   // Actions
   setTitle: (title: string) => void;
@@ -92,6 +93,7 @@ export const useTextbookStore = create<TextbookState>((set) => ({
   currentView: 'READ',
   isEditMode: false,
   selectedNodeId: null,
+  activeProjectId: null,
 
   setTitle: (title) => set({ title }),
   setApiKey: (key) => set({ apiKey: key }),
