@@ -11,7 +11,7 @@ export default function Home() {
 
   return (
     <AppLayout>
-      {status === "IDLE" ? (
+      {status === "IDLE" || status === "GENERATING_OUTLINE" ? (
         <div className="flex-1 flex items-center justify-center relative overflow-hidden">
           {/* Ambient Background for premium feel */}
           <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-primary/20 blur-[120px] rounded-full pointer-events-none" />
