@@ -6,7 +6,7 @@ import { UserButton } from '@clerk/nextjs';
 import { BookOpen, Plus, Clock, FileText } from 'lucide-react';
 
 export default async function DashboardPage() {
-  const { userId } = auth();
+  const { userId } = await auth();
   
   if (!userId) {
     redirect('/');
@@ -34,7 +34,7 @@ export default async function DashboardPage() {
             <Plus className="w-4 h-4" />
             <span className="hidden sm:inline-block">New Textbook</span>
           </Link>
-          <UserButton afterSignOutUrl="/" />
+          <UserButton />
         </div>
       </header>
 

@@ -4,7 +4,7 @@ import { redirect, notFound } from 'next/navigation';
 import { WorkspaceClient } from './WorkspaceClient';
 
 export default async function BookPage({ params }: { params: { id: string } }) {
-  const { userId } = auth();
+  const { userId } = await auth();
   
   if (!userId) {
     redirect('/sign-in');
