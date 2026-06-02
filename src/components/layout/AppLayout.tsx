@@ -3,7 +3,8 @@ import { ApiConfigBlock } from '@/components/auth/ApiConfigBlock';
 import { ExportMenu } from '@/components/export/ExportMenu';
 import { useTextbookStore } from '@/store/useTextbookStore';
 import { useGenerationEngine } from '@/hooks/useGenerationEngine';
-import { Play, CheckCircle2, Loader2, Settings, BookOpen, Network, Lock, Unlock, X } from 'lucide-react';
+import { Play, CheckCircle2, Loader2, Settings, BookOpen, Network, Lock, Unlock, X, ChevronLeft } from 'lucide-react';
+import Link from 'next/link';
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -21,12 +22,17 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
       {/* Premium Top Navigation */}
       <header className="h-16 border-b border-white/10 bg-card/80 backdrop-blur-xl flex items-center px-6 shrink-0 justify-between z-20 shadow-sm">
         
-        {/* Left: Logo */}
-        <div className="flex items-center space-x-3">
-          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary to-purple-600 flex items-center justify-center text-white font-bold shadow-lg shadow-primary/20">
-            A
+        {/* Left: Logo and Back */}
+        <div className="flex items-center space-x-4">
+          <Link href="/dashboard" className="p-2 -ml-2 rounded-full hover:bg-secondary text-muted-foreground transition-colors" title="Back to Dashboard">
+            <ChevronLeft className="w-5 h-5" />
+          </Link>
+          <div className="flex items-center space-x-3">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary to-purple-600 flex items-center justify-center text-white font-bold shadow-lg shadow-primary/20">
+              A
+            </div>
+            <h1 className="font-bold text-lg hidden sm:block tracking-tight">AI Textbook Gen</h1>
           </div>
-          <h1 className="font-bold text-lg hidden sm:block tracking-tight">AI Textbook Gen</h1>
         </div>
 
         {/* Center: View Switcher (Only show if not idle) */}

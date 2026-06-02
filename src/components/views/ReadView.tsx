@@ -4,13 +4,16 @@ import React, { useState } from 'react';
 import { useTextbookStore, OutlineNode } from '@/store/useTextbookStore';
 import { useGenerationEngine } from '@/hooks/useGenerationEngine';
 import ReactMarkdown from 'react-markdown';
-import { Loader2, Play, Lock, Unlock, Edit3, Trash2 } from 'lucide-react';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
+import { Loader2, Play, Lock, Unlock, Edit3, Trash2, ZoomIn, ZoomOut } from 'lucide-react';
 
 export const ReadView = () => {
   const { outline, isEditMode, selectedNodeId, setSelectedNodeId, deleteNode, updateNodeTitle } = useTextbookStore();
   const { generateContent, isGenerating } = useGenerationEngine();
   const [editingTitleId, setEditingTitleId] = useState<string | null>(null);
   const [localTitle, setLocalTitle] = useState('');
+  const [zoomLevel, setZoomLevel] = useState(1);
 
   // Default selection to first node if none selected
   const activeNodeId = selectedNodeId || (outline.length > 0 ? outline[0].id : null);
@@ -127,9 +130,21 @@ export const ReadView = () => {
             </div>
           ) : (
             <div className="prose prose-slate dark:prose-invert max-w-none">
-              <h1 className="text-4xl font-extrabold tracking-tight mb-8">
-                {activeNode.title}
-              </h1>
+              {/* Reader Header with Zoom Controls */}
+              <div className="flex items-center justify-between mb-8 pb-4 border-b border-border/50">
+                <h1 className="text-4xl font-extrabold tracking-tight m-0">
+                  {activeNode.title}
+                </h1>
+                <div className="flex items-center space-x-2 bg-secondary/50 rounded-full p-1 border border-border/50">
+                  <button onClick={() => setZoomLevel(Math.max(0.8, zoomLevel - 0.1))} className="p-2 hover:bg-background rounded-full transition-colors text-muted-foreground hover:text-foreground">
+                    <ZoomOut className="w-4 h-4" />
+                  </button>
+                  <span className="text-xs font-medium w-12 text-center">{Math.round(zoomLevel * 100)}%</span>
+                  <button onClick={() => setZoomLevel(Math.min(1.5, zoomLevel + 0.1))} className="p-2 hover:bg-background rounded-full transition-colors text-muted-foreground hover:text-foreground">
+                    <ZoomIn className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
               
               {!activeNode.content ? (
                 <div className="flex flex-col items-center justify-center p-12 border-2 border-dashed border-border rounded-xl bg-secondary/20">
@@ -152,8 +167,16 @@ export const ReadView = () => {
                   )}
                 </div>
               ) : (
-                <div className="markdown-content">
-                  <ReactMarkdown>{activeNode.content}</ReactMarkdown>
+                <div 
+                  className="markdown-content"
+                  style={{ fontSize: `${zoomLevel}rem`, lineHeight: 1.7 }}
+                >
+                  <ReactMarkdown 
+                    remarkPlugins={[remarkMath]} 
+                    rehypePlugins={[rehypeKatex]}
+                  >
+                    {activeNode.content}
+                  </ReactMarkdown>
                 </div>
               )}
             </div>

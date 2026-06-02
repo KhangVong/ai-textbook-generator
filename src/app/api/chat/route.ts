@@ -64,10 +64,13 @@ Return ONLY a valid JSON object matching this structure: { "outline": [ ... ] }.
     } 
     
     if (type === 'generate_content') {
-      const systemPrompt = `You are an expert textbook author. 
+      const systemPrompt = `You are an expert textbook author writing for a premium Notion-style reading experience.
 Write comprehensive, deeply engaging, and educational content for the requested textbook section.
-Use markdown for formatting. Include diagrams using mermaid.js if helpful (use \`\`\`mermaid ... \`\`\` blocks).
-Format the content cleanly, explaining concepts logically.
+CRITICAL REQUIREMENTS:
+1. Use extensive Markdown formatting (bolding, quotes, lists, tables) to make it highly readable.
+2. Use LaTeX for ALL mathematical equations. Use $$ for block equations and $ for inline equations.
+3. Include mermaid.js diagrams where helpful (use \`\`\`mermaid ... \`\`\` blocks).
+4. Do NOT output raw JSON. Output pure Markdown.
 Context of the full outline: ${JSON.stringify(currentOutline)}
 You are writing content for the node with title: "${prompt}".`;
 

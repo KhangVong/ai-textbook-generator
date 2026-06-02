@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { ClerkProvider } from '@clerk/nextjs'
 import "./globals.css";
+import 'katex/dist/katex.min.css';
 
 const inter = Inter({
   variable: "--font-inter",

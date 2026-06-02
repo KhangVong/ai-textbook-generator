@@ -1,28 +1,57 @@
 import React, { useMemo } from 'react';
-import { ReactFlow, Controls, Background, Node, Edge, useNodesState, useEdgesState } from '@xyflow/react';
+import { ReactFlow, Controls, Background, Node, Edge, useNodesState, useEdgesState, Position } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { useTextbookStore, OutlineNode } from '@/store/useTextbookStore';
+import dagre from 'dagre';
+
+const dagreGraph = new dagre.graphlib.Graph();
+dagreGraph.setDefaultEdgeLabel(() => ({}));
+
+const getLayoutedElements = (nodes: Node[], edges: Edge[], direction = 'LR') => {
+  const isHorizontal = direction === 'LR';
+  dagreGraph.setGraph({ rankdir: direction, ranksep: 120, nodesep: 60 });
+
+  nodes.forEach((node) => {
+    dagreGraph.setNode(node.id, { width: 240, height: 60 });
+  });
+
+  edges.forEach((edge) => {
+    dagreGraph.setEdge(edge.source, edge.target);
+  });
+
+  dagre.layout(dagreGraph);
+
+  const newNodes = nodes.map((node) => {
+    const nodeWithPosition = dagreGraph.node(node.id);
+    return {
+      ...node,
+      targetPosition: isHorizontal ? Position.Left : Position.Top,
+      sourcePosition: isHorizontal ? Position.Right : Position.Bottom,
+      position: {
+        x: nodeWithPosition.x - 120,
+        y: nodeWithPosition.y - 30,
+      },
+    };
+  });
+
+  return { nodes: newNodes, edges };
+};
 
 export const MindmapView = () => {
   const { outline, isEditMode } = useTextbookStore();
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
 
-  // Transform outline to nodes and edges with naive layout
+  // Transform outline to nodes and edges with dagre layout
   useMemo(() => {
-    const newNodes: Node[] = [];
-    const newEdges: Edge[] = [];
+    const rawNodes: Node[] = [];
+    const rawEdges: Edge[] = [];
     
-    let yOffset = 0;
-    
-    const traverse = (nodeList: OutlineNode[], parentId: string | null, depth: number) => {
+    const traverse = (nodeList: OutlineNode[], parentId: string | null) => {
       nodeList.forEach((node) => {
-        const x = depth * 320;
-        const y = yOffset * 100;
-        
-        newNodes.push({
+        rawNodes.push({
           id: node.id,
-          position: { x, y },
+          position: { x: 0, y: 0 },
           data: { label: node.title },
           type: 'default',
           style: {
@@ -33,14 +62,15 @@ export const MindmapView = () => {
             borderRadius: '12px',
             fontSize: '14px',
             fontWeight: '500',
-            width: 220,
+            width: 240,
             padding: '12px',
-            boxShadow: '0 8px 32px rgba(0,0,0,0.1)'
+            boxShadow: '0 8px 32px rgba(0,0,0,0.1)',
+            textAlign: 'left',
           }
         });
 
         if (parentId) {
-          newEdges.push({
+          rawEdges.push({
             id: `e-${parentId}-${node.id}`,
             source: parentId,
             target: node.id,
@@ -50,19 +80,20 @@ export const MindmapView = () => {
           });
         }
         
-        yOffset++;
         if (node.children && node.children.length > 0) {
-          traverse(node.children, node.id, depth + 1);
+          traverse(node.children, node.id);
         }
       });
     };
 
     if (outline && outline.length > 0) {
-      traverse(outline, null, 0);
+      traverse(outline, null);
     }
     
-    setNodes(newNodes);
-    setEdges(newEdges);
+    const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(rawNodes, rawEdges, 'LR');
+    
+    setNodes(layoutedNodes);
+    setEdges(layoutedEdges);
   }, [outline, setNodes, setEdges]);
 
   return (

@@ -45,8 +45,15 @@ export const NlpWizard = () => {
       });
 
       if (!response.ok) {
-        const errData = await response.json();
-        throw new Error(errData.error || 'Failed to generate outline');
+        let errText = await response.text();
+        let errMsg = 'Failed to generate outline';
+        try {
+          const errData = JSON.parse(errText);
+          errMsg = errData.error || errMsg;
+        } catch {
+          errMsg = errText || response.statusText;
+        }
+        throw new Error(errMsg);
       }
 
       const data = await response.json();
@@ -76,7 +83,7 @@ export const NlpWizard = () => {
             .select('id')
             .single();
 
-          if (dbError) throw new Error('Failed to save project to database');
+          if (dbError) throw new Error(`Failed to save project to database: ${dbError.message}`);
           
           router.push(`/book/${insertedProject.id}`);
         } else {
