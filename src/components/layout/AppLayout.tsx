@@ -3,7 +3,7 @@ import { ApiConfigBlock } from '@/components/auth/ApiConfigBlock';
 import { ExportMenu } from '@/components/export/ExportMenu';
 import { useTextbookStore } from '@/store/useTextbookStore';
 import { useGenerationEngine } from '@/hooks/useGenerationEngine';
-import { Play, CheckCircle2, Loader2, Settings, BookOpen, Network, Lock, Unlock, X, ChevronLeft } from 'lucide-react';
+import { Play, CheckCircle2, Loader2, Settings, BookOpen, Network, Lock, Unlock, X, ChevronLeft, Square } from 'lucide-react';
 import Link from 'next/link';
 
 interface AppLayoutProps {
@@ -12,7 +12,7 @@ interface AppLayoutProps {
 
 export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
   const { status, currentView, setCurrentView, isEditMode, setIsEditMode, outline, isSettingsOpen, setIsSettingsOpen } = useTextbookStore();
-  const { generateContent, isGenerating, progress } = useGenerationEngine();
+  const { generateContent, stopGeneration, isGenerating, progress } = useGenerationEngine();
 
   const isIdle = status === 'IDLE';
 
@@ -80,9 +80,19 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
           )}
 
           {isGenerating && (
-            <div className="flex items-center text-sm text-primary bg-primary/10 px-3 py-1.5 rounded-full">
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              {progress}%
+            <div className="flex items-center space-x-2">
+              <div className="flex items-center text-sm text-primary bg-primary/10 px-3 py-1.5 rounded-full">
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                {progress}%
+              </div>
+              <button 
+                onClick={() => stopGeneration?.()}
+                className="flex items-center text-sm bg-destructive text-destructive-foreground px-4 py-1.5 rounded-full shadow-md hover:bg-destructive/90 transition-all hover:scale-105 active:scale-95"
+                title="Stop Generation"
+              >
+                <Square className="w-4 h-4 mr-1" />
+                Stop
+              </button>
             </div>
           )}
 
@@ -92,7 +102,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
               className="flex items-center text-sm bg-primary text-primary-foreground px-4 py-1.5 rounded-full shadow-md hover:bg-primary/90 transition-all hover:scale-105 active:scale-95"
             >
               <Play className="w-4 h-4 mr-2" />
-              Generate All
+              {progress > 0 ? 'Resume Generation' : 'Generate All'}
             </button>
           )}
 

@@ -1,10 +1,11 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { useTextbookStore, OutlineNode } from '@/store/useTextbookStore';
 
 export const useGenerationEngine = () => {
   const { outline, apiKey, baseURL, modelName, updateNodeContent, setStatus } = useTextbookStore();
   const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState(0);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const flattenNodes = (nodes: OutlineNode[]): OutlineNode[] => {
     let result: OutlineNode[] = [];
@@ -15,9 +16,17 @@ export const useGenerationEngine = () => {
     return result;
   };
 
+  const stopGeneration = useCallback(() => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+    setIsGenerating(false);
+    setStatus('EDITING_OUTLINE');
+  }, [setStatus]);
+
   const generateContent = useCallback(async (targetedNodeId?: string) => {
     const isCustomUrl = baseURL && !baseURL.includes('api.openai.com');
-    // If no API key and it's not a custom local URL (like localhost), we should warn
     if (!apiKey && !isCustomUrl) {
       alert("Please configure your API Key in the Settings (bottom left) first.");
       return;
@@ -31,15 +40,27 @@ export const useGenerationEngine = () => {
     setIsGenerating(true);
     setStatus('GENERATING_CHAPTERS');
     
+    // Setup abort controller for this run
+    abortControllerRef.current = new AbortController();
+    
     const allNodes = flattenNodes(outline);
+    // Only generate nodes that are empty or were partially generated (we could clear them first, or just overwrite).
+    // For simplicity, we'll overwrite any node that doesn't have a lot of content (< 50 chars usually means failed/partial)
     const nodesToGenerate = targetedNodeId 
       ? allNodes.filter(n => n.id === targetedNodeId)
-      : allNodes.filter(n => !n.content); // If batch, only generate missing ones
+      : allNodes.filter(n => !n.content || n.content.length < 50);
       
     let completed = 0;
     let hasError = false;
 
     for (const node of nodesToGenerate) {
+      if (abortControllerRef.current?.signal.aborted) {
+        break; // Stop the loop if aborted
+      }
+      
+      // Clear existing content before generating to show it's starting fresh
+      updateNodeContent(node.id, '');
+
       try {
         const response = await fetch('/api/chat', {
           method: 'POST',
@@ -55,6 +76,7 @@ export const useGenerationEngine = () => {
             currentOutline: outline,
             nodeId: node.id
           }),
+          signal: abortControllerRef.current.signal
         });
 
         if (!response.ok) {
@@ -68,6 +90,9 @@ export const useGenerationEngine = () => {
         let content = '';
 
         while (true) {
+          if (abortControllerRef.current?.signal.aborted) {
+            break; // Stop reading if aborted
+          }
           const { done, value } = await reader.read();
           if (done) break;
           
@@ -76,6 +101,10 @@ export const useGenerationEngine = () => {
           updateNodeContent(node.id, content);
         }
       } catch (err: any) {
+        if (err.name === 'AbortError' || err.message.includes('aborted')) {
+          console.log('Generation aborted by user.');
+          break; // Exit the loop gracefully
+        }
         console.error(`Error generating content for ${node.title}:`, err);
         alert(`Failed to generate content for "${node.title}". Error: ${err.message}`);
         hasError = true;
@@ -95,12 +124,17 @@ export const useGenerationEngine = () => {
       setProgress(Math.round((completed / nodesToGenerate.length) * 100));
     }
 
+    if (abortControllerRef.current) {
+      abortControllerRef.current = null;
+    }
+    
     setIsGenerating(false);
     setStatus(hasError ? 'EDITING_OUTLINE' : 'COMPLETE');
   }, [outline, apiKey, baseURL, modelName, updateNodeContent, setStatus]);
 
   return {
     generateContent,
+    stopGeneration,
     isGenerating,
     progress
   };

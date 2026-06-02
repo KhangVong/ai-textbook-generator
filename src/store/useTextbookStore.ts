@@ -12,9 +12,16 @@ export interface OutlineNode {
 
 export type AppStatus = 'IDLE' | 'GENERATING_OUTLINE' | 'EDITING_OUTLINE' | 'GENERATING_CHAPTERS' | 'COMPLETE';
 
+export interface BookMetadata {
+  targetAudience?: string;
+  tone?: string;
+  prerequisites?: string;
+}
+
 interface TextbookState {
   title: string;
   outline: OutlineNode[];
+  metadata: BookMetadata;
   apiKey: string | null;
   baseURL: string;
   modelName: string;
@@ -29,6 +36,7 @@ interface TextbookState {
 
   // Actions
   setTitle: (title: string) => void;
+  setMetadata: (metadata: BookMetadata) => void;
   setApiKey: (key: string | null) => void;
   setBaseURL: (url: string) => void;
   setModelName: (model: string) => void;
@@ -91,6 +99,7 @@ export const useTextbookStore = create<TextbookState>()(
     (set) => ({
       title: 'Untitled Textbook',
       outline: [],
+      metadata: {},
       apiKey: null,
       baseURL: 'https://api.openai.com/v1',
       modelName: 'gpt-4o',
@@ -102,6 +111,7 @@ export const useTextbookStore = create<TextbookState>()(
       isSettingsOpen: false,
 
       setTitle: (title) => set({ title }),
+      setMetadata: (metadata) => set({ metadata }),
       setApiKey: (key) => set({ apiKey: key }),
       setBaseURL: (url) => set({ baseURL: url }),
       setModelName: (model) => set({ modelName: model }),
