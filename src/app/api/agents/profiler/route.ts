@@ -1,15 +1,8 @@
 import { createOpenAI } from '@ai-sdk/openai';
-import { generateObject } from 'ai';
-import { z } from 'zod';
+import { generateText } from 'ai';
 import { NextResponse } from 'next/server';
 
 export const runtime = 'edge';
-
-const profileSchema = z.object({
-  targetAudience: z.string().describe("The specific demographic or skill level this book is written for, e.g., 'High school students', 'Senior Software Engineers'."),
-  tone: z.string().describe("The reading tone and style, e.g., 'Academic and rigorous', 'Casual and humorous', 'Socratic and questioning'."),
-  prerequisites: z.string().describe("Required prior knowledge, e.g., 'Basic Calculus', 'None'.")
-});
 
 export async function POST(req: Request) {
   try {
@@ -31,14 +24,40 @@ export async function POST(req: Request) {
     const systemPrompt = `You are a Senior Educational Product Manager (The Profiler). 
 A user wants to create a textbook or course based on the following request: "${prompt}".
 Your job is to analyze this request and deduce the optimal educational profile for this book.
-Fill out the target audience, tone, and prerequisites based on your expert pedagogical analysis.`;
+Fill out the target audience, tone, and prerequisites based on your expert pedagogical analysis.
 
-    const { object } = await generateObject({
+Return ONLY a valid JSON object matching this exact structure:
+{
+  "targetAudience": "The specific demographic or skill level this book is written for, e.g., 'High school students', 'Senior Software Engineers'.",
+  "tone": "The reading tone and style, e.g., 'Academic and rigorous', 'Casual and humorous', 'Socratic and questioning'.",
+  "prerequisites": "Required prior knowledge, e.g., 'Basic Calculus', 'None'."
+}
+Do not include any markdown formatting like \`\`\`json or explanations, just the raw JSON object.`;
+
+    const result = await generateText({
       model: openai.chat(modelName),
-      schema: profileSchema,
       system: systemPrompt,
       prompt: "Generate the book metadata profile."
     });
+
+    let jsonStr = result.text.trim();
+    if (jsonStr.startsWith('```json')) {
+      jsonStr = jsonStr.replace(/^```json\n?/, '').replace(/\n?```$/, '');
+    } else if (jsonStr.startsWith('```')) {
+      jsonStr = jsonStr.replace(/^```\n?/, '').replace(/\n?```$/, '');
+    }
+    
+    let object;
+    try {
+      object = JSON.parse(jsonStr);
+    } catch (parseErr) {
+      // Fallback defaults if it completely fails to output JSON
+      object = {
+        targetAudience: "General Audience",
+        tone: "Educational and Clear",
+        prerequisites: "None"
+      };
+    }
 
     return NextResponse.json(object);
   } catch (error: any) {
