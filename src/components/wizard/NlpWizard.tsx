@@ -77,6 +77,16 @@ export const NlpWizard = () => {
       <div className="relative group">
         <div className="absolute -inset-0.5 bg-gradient-to-r from-primary to-purple-600 rounded-xl blur opacity-30 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
         <div className="relative flex items-center bg-card border border-border rounded-xl premium-shadow overflow-hidden">
+          
+          {isLoading && (
+            <div className="absolute inset-0 z-10 bg-card/90 backdrop-blur-md flex items-center justify-center">
+              <Loader2 className="w-6 h-6 animate-spin text-primary mr-3" />
+              <span className="font-semibold bg-clip-text text-transparent bg-gradient-to-r from-primary to-purple-600">
+                AI is designing your curriculum outline...
+              </span>
+            </div>
+          )}
+
           <div className="pl-4 text-primary">
             <Sparkles className="w-5 h-5" />
           </div>
