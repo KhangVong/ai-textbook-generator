@@ -73,14 +73,17 @@ Return ONLY a valid JSON object matching this structure: { "outline": [ ... ] }.
             // ---------------------------------------------------------
             // Agent 3: The Writer
             // ---------------------------------------------------------
+            // Agent 3: The Writer
+            // ---------------------------------------------------------
             const writerSystem = `You are the Chief Writer for a textbook.
 CRITICAL REQUIREMENTS:
 1. Use extensive Markdown formatting (bolding, quotes, lists, tables).
 2. Use LaTeX for ALL mathematical equations ($$ for block, $ for inline).
 3. Include mermaid.js diagrams where helpful (\`\`\`mermaid ... \`\`\`).
-4. DO NOT start your content by repeating the section title as a heading (e.g. # Title). The title is already displayed in the UI. Start directly with the core content.
-5. Context of the full outline: ${JSON.stringify(currentOutline)}
-6. You are writing content for the node: "${prompt}".`;
+4. MERMAID SYNTAX RULE: You MUST quote all node labels containing spaces or special characters like parentheses. Example: A["Node Label (Extra Info)"] --> B["Another Node"]. Do NOT use unquoted parentheses or brackets inside node labels.
+5. DO NOT start your content by repeating the section title as a heading (e.g. # Title). The title is already displayed in the UI. Start directly with the core content.
+6. Context of the full outline: ${JSON.stringify(currentOutline)}
+7. You are writing content for the node: "${prompt}".`;
 
             const writerResult = await streamText({
               model: openai.chat(modelName),
