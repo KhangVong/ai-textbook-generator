@@ -37,7 +37,6 @@ export async function POST(req: Request) {
       const result = await generateText({
         model: openai.chat(modelName),
         prompt: 'Say OK',
-        maxTokens: 5,
       });
       return NextResponse.json({ success: true, text: result.text.trim() });
     }
