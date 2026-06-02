@@ -11,9 +11,8 @@ interface AppLayoutProps {
 }
 
 export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
-  const { status, currentView, setCurrentView, isEditMode, setIsEditMode, outline } = useTextbookStore();
+  const { status, currentView, setCurrentView, isEditMode, setIsEditMode, outline, isSettingsOpen, setIsSettingsOpen } = useTextbookStore();
   const { generateContent, isGenerating, progress } = useGenerationEngine();
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   const isIdle = status === 'IDLE';
 
@@ -27,12 +26,12 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
           <Link href="/dashboard" className="p-2 -ml-2 rounded-full hover:bg-secondary text-muted-foreground transition-colors" title="Back to Dashboard">
             <ChevronLeft className="w-5 h-5" />
           </Link>
-          <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary to-purple-600 flex items-center justify-center text-white font-bold shadow-lg shadow-primary/20">
-              A
+          <Link href="/dashboard" className="flex items-center space-x-3 group">
+            <div className="w-8 h-8 rounded-xl bg-zinc-900 dark:bg-zinc-100 flex items-center justify-center text-background font-bold shadow-md group-hover:scale-105 transition-transform">
+              K
             </div>
-            <h1 className="font-bold text-lg hidden sm:block tracking-tight">AI Textbook Gen</h1>
-          </div>
+            <h1 className="font-bold text-lg hidden sm:block tracking-tight text-foreground group-hover:text-primary transition-colors">AnyKnowledge</h1>
+          </Link>
         </div>
 
         {/* Center: View Switcher (Only show if not idle) */}
@@ -98,13 +97,6 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
           )}
 
           <ExportMenu />
-          
-          <button 
-            onClick={() => setIsSettingsOpen(true)}
-            className="p-2 rounded-full hover:bg-secondary text-muted-foreground transition-colors"
-          >
-            <Settings className="w-5 h-5" />
-          </button>
         </div>
       </header>
 

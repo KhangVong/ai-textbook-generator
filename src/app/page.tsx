@@ -8,20 +8,19 @@ export default async function LandingPage() {
   return (
     <div className="min-h-screen bg-background text-foreground selection:bg-primary/30">
       
-      {/* Background Ambient Effects */}
+      {/* Background Ambient Effects (Muted/Minimalist) */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
-        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/20 blur-[150px] rounded-full mix-blend-screen" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-purple-600/20 blur-[150px] rounded-full mix-blend-screen" />
-        <div className="absolute top-[40%] left-[50%] -translate-x-1/2 w-[60%] h-[20%] bg-blue-500/10 blur-[120px] rounded-full mix-blend-screen" />
+        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-zinc-500/5 blur-[150px] rounded-full mix-blend-screen" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-zinc-500/5 blur-[150px] rounded-full mix-blend-screen" />
       </div>
 
       {/* Header */}
       <header className="relative z-10 container mx-auto px-6 h-20 flex items-center justify-between border-b border-white/5">
         <div className="flex items-center space-x-3">
-          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary to-purple-600 flex items-center justify-center text-white font-bold shadow-lg shadow-primary/20">
-            A
+          <div className="w-8 h-8 rounded-xl bg-zinc-900 dark:bg-zinc-100 flex items-center justify-center text-background font-bold shadow-md">
+            K
           </div>
-          <span className="font-bold text-xl tracking-tight">AI Textbook Gen</span>
+          <span className="font-bold text-xl tracking-tight">AnyKnowledge</span>
         </div>
         <nav className="hidden md:flex items-center space-x-8 text-sm font-medium text-muted-foreground">
           <a href="#features" className="hover:text-foreground transition-colors">Features</a>
@@ -59,11 +58,11 @@ export default async function LandingPage() {
         </div>
 
         <h1 className="text-5xl md:text-7xl font-extrabold tracking-tighter max-w-4xl leading-[1.1] mb-8 animate-in fade-in slide-in-from-bottom-6 duration-1000 delay-100 fill-mode-both">
-          Generate <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-purple-500 to-blue-500">Master-Level</span> Textbooks in Seconds.
+          Generate <span className="text-foreground dark:text-zinc-100">Structured Notebooks</span> in Seconds.
         </h1>
         
         <p className="text-xl text-muted-foreground max-w-2xl mb-12 leading-relaxed animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-200 fill-mode-both">
-          Enter any topic, and our AI orchestrates a deeply structured curriculum, complete with interactive mindmaps and production-ready markdown content.
+          Enter any topic, and our engine orchestrates a deeply structured curriculum, complete with interactive mindmaps and clean markdown content.
         </p>
 
         <div className="flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-4 animate-in fade-in slide-in-from-bottom-10 duration-1000 delay-300 fill-mode-both">
@@ -128,7 +127,7 @@ export default async function LandingPage() {
 
       {/* Footer */}
       <footer className="relative z-10 border-t border-white/5 py-12 text-center text-muted-foreground">
-        <p className="text-sm">© 2026 AI Textbook Gen. All rights reserved. Designed with precision.</p>
+        <p className="text-sm">© 2026 AnyKnowledge. All rights reserved. Designed with precision.</p>
       </footer>
     </div>
   );

@@ -24,6 +24,7 @@ interface TextbookState {
   isEditMode: boolean;
   selectedNodeId: string | null;
   activeProjectId: string | null;
+  isSettingsOpen: boolean;
 
   // Actions
   setTitle: (title: string) => void;
@@ -40,6 +41,7 @@ interface TextbookState {
   setCurrentView: (view: 'READ' | 'MINDMAP') => void;
   setIsEditMode: (isEdit: boolean) => void;
   setSelectedNodeId: (id: string | null) => void;
+  setIsSettingsOpen: (open: boolean) => void;
 }
 
 // Helper to recursively find and update a node
@@ -94,6 +96,7 @@ export const useTextbookStore = create<TextbookState>((set) => ({
   isEditMode: false,
   selectedNodeId: null,
   activeProjectId: null,
+  isSettingsOpen: false,
 
   setTitle: (title) => set({ title }),
   setApiKey: (key) => set({ apiKey: key }),
@@ -104,6 +107,7 @@ export const useTextbookStore = create<TextbookState>((set) => ({
   setCurrentView: (view) => set({ currentView: view }),
   setIsEditMode: (isEdit) => set({ isEditMode: isEdit }),
   setSelectedNodeId: (id) => set({ selectedNodeId: id }),
+  setIsSettingsOpen: (open) => set({ isSettingsOpen: open }),
 
   updateNodeContent: (id, content) => set((state) => ({
     outline: updateNodeRecursive(state.outline, id, (node) => ({ ...node, content }))

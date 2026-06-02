@@ -6,10 +6,10 @@ import { useGenerationEngine } from '@/hooks/useGenerationEngine';
 import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
-import { Loader2, Play, Lock, Unlock, Edit3, Trash2, ZoomIn, ZoomOut } from 'lucide-react';
+import { Loader2, Play, Lock, Unlock, Edit3, Trash2, ZoomIn, ZoomOut, Settings } from 'lucide-react';
 
 export const ReadView = () => {
-  const { outline, isEditMode, selectedNodeId, setSelectedNodeId, deleteNode, updateNodeTitle } = useTextbookStore();
+  const { outline, isEditMode, selectedNodeId, setSelectedNodeId, deleteNode, updateNodeTitle, setIsSettingsOpen } = useTextbookStore();
   const { generateContent, isGenerating } = useGenerationEngine();
   const [editingTitleId, setEditingTitleId] = useState<string | null>(null);
   const [localTitle, setLocalTitle] = useState('');
@@ -117,6 +117,18 @@ export const ReadView = () => {
               </div>
             );
           })}
+        </div>
+        
+        {/* Sidebar Footer with Settings */}
+        <div className="p-4 border-t border-border/50 bg-secondary/10 flex items-center shrink-0">
+          <button 
+            onClick={() => setIsSettingsOpen(true)}
+            className="flex items-center text-sm text-muted-foreground hover:text-foreground transition-colors space-x-2 py-1.5 px-3 rounded-lg hover:bg-secondary w-full"
+            title="Configure model and API settings"
+          >
+            <Settings className="w-4 h-4" />
+            <span>Settings</span>
+          </button>
         </div>
       </div>
 

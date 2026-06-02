@@ -56,7 +56,13 @@ export const NlpWizard = () => {
         throw new Error(errMsg);
       }
 
-      const data = await response.json();
+      let responseText = await response.text();
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (jsonErr) {
+        throw new Error(`Failed to parse AI response. Server returned: "${responseText.substring(0, 200)}"`);
+      }
       
       // The API returns an object { outline: [...] } based on Zod schema
       if (data.outline && Array.isArray(data.outline)) {
@@ -106,13 +112,13 @@ export const NlpWizard = () => {
   return (
     <div className="w-full">
       <div className="relative group">
-        <div className="absolute -inset-0.5 bg-gradient-to-r from-primary to-purple-600 rounded-xl blur opacity-30 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
+        <div className="absolute -inset-0.5 bg-zinc-200 dark:bg-zinc-800 rounded-xl blur opacity-30 group-hover:opacity-40 transition duration-1000"></div>
         <div className="relative flex items-center bg-card border border-border rounded-xl premium-shadow overflow-hidden">
           
           {isLoading && (
             <div className="absolute inset-0 z-10 bg-card/90 backdrop-blur-md flex items-center justify-center">
               <Loader2 className="w-6 h-6 animate-spin text-primary mr-3" />
-              <span className="font-semibold bg-clip-text text-transparent bg-gradient-to-r from-primary to-purple-600">
+              <span className="font-semibold text-zinc-800 dark:text-zinc-200">
                 AI is designing your curriculum outline...
               </span>
             </div>
