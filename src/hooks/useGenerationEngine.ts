@@ -1,6 +1,5 @@
 import { useState, useCallback } from 'react';
 import { useTextbookStore, OutlineNode } from '@/store/useTextbookStore';
-import { supabase } from '@/lib/supabase';
 
 export const useGenerationEngine = () => {
   const { outline, apiKey, baseURL, modelName, updateNodeContent, setStatus } = useTextbookStore();
@@ -18,7 +17,16 @@ export const useGenerationEngine = () => {
 
   const generateContent = useCallback(async (targetedNodeId?: string) => {
     const isCustomUrl = baseURL && !baseURL.includes('api.openai.com');
-    if ((!apiKey && !isCustomUrl) || !outline.length) return;
+    // If no API key and it's not a custom local URL (like localhost), we should warn
+    if (!apiKey && !isCustomUrl) {
+      alert("Please configure your API Key in the Settings (bottom left) first.");
+      return;
+    }
+    
+    if (!outline.length) {
+      alert("Outline is empty. Please go back and generate an outline first.");
+      return;
+    }
     
     setIsGenerating(true);
     setStatus('GENERATING_CHAPTERS');
@@ -29,6 +37,7 @@ export const useGenerationEngine = () => {
       : allNodes.filter(n => !n.content); // If batch, only generate missing ones
       
     let completed = 0;
+    let hasError = false;
 
     for (const node of nodesToGenerate) {
       try {
@@ -48,8 +57,11 @@ export const useGenerationEngine = () => {
           }),
         });
 
-        if (!response.ok) throw new Error('Failed to generate');
-        if (!response.body) throw new Error('No body');
+        if (!response.ok) {
+          const errText = await response.text();
+          throw new Error(`Server returned ${response.status}: ${errText}`);
+        }
+        if (!response.body) throw new Error('No body returned from server');
 
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
@@ -63,8 +75,11 @@ export const useGenerationEngine = () => {
           content += chunk;
           updateNodeContent(node.id, content);
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error(`Error generating content for ${node.title}:`, err);
+        alert(`Failed to generate content for "${node.title}". Error: ${err.message}`);
+        hasError = true;
+        break; // Stop generating if there's an error
       }
       
       const currentState = useTextbookStore.getState();
@@ -81,9 +96,7 @@ export const useGenerationEngine = () => {
     }
 
     setIsGenerating(false);
-    // Don't mark COMPLETE if only generating one node and others are still missing, 
-    // but for simplicity we will just set COMPLETE if we successfully generated something.
-    setStatus('COMPLETE');
+    setStatus(hasError ? 'EDITING_OUTLINE' : 'COMPLETE');
   }, [outline, apiKey, baseURL, modelName, updateNodeContent, setStatus]);
 
   return {
