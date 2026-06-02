@@ -5,8 +5,10 @@ import { useTextbookStore, OutlineNode } from '@/store/useTextbookStore';
 import { useGenerationEngine } from '@/hooks/useGenerationEngine';
 import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
+import remarkGfm from 'remark-gfm';
 import rehypeKatex from 'rehype-katex';
 import { Loader2, Play, Lock, Unlock, Edit3, Trash2, ZoomIn, ZoomOut, Settings } from 'lucide-react';
+import { MermaidDiagram } from '@/components/ui/MermaidDiagram';
 
 export const ReadView = () => {
   const { outline, isEditMode, selectedNodeId, setSelectedNodeId, deleteNode, updateNodeTitle, setIsSettingsOpen } = useTextbookStore();
@@ -184,8 +186,21 @@ export const ReadView = () => {
                   style={{ fontSize: `${zoomLevel}rem`, lineHeight: 1.7 }}
                 >
                   <ReactMarkdown 
-                    remarkPlugins={[remarkMath]} 
+                    remarkPlugins={[remarkMath, remarkGfm]} 
                     rehypePlugins={[rehypeKatex]}
+                    components={{
+                      code({ node, inline, className, children, ...props }: any) {
+                        const match = /language-(\w+)/.exec(className || '');
+                        if (!inline && match && match[1] === 'mermaid') {
+                          return <MermaidDiagram chart={String(children).replace(/\n$/, '')} />;
+                        }
+                        return (
+                          <code className={className} {...props}>
+                            {children}
+                          </code>
+                        );
+                      }
+                    }}
                   >
                     {activeNode.content}
                   </ReactMarkdown>
