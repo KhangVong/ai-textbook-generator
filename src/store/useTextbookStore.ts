@@ -110,6 +110,7 @@ export const useTextbookStore = create<TextbookState>()(
       isEditMode: false,
       selectedNodeId: null,
       activeProjectId: null,
+      isSettingsOpen: false,
       // Settings states
       enableQuizzes: true,
 
