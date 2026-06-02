@@ -58,23 +58,98 @@ Return ONLY a valid JSON object matching this structure: { "outline": [ ... ] }.
     } 
     
     if (type === 'generate_content') {
-      const systemPrompt = `You are an expert textbook author writing for a premium Notion-style reading experience.
-Write comprehensive, deeply engaging, and educational content for the requested textbook section.
-CRITICAL REQUIREMENTS:
-1. Use extensive Markdown formatting (bolding, quotes, lists, tables) to make it highly readable.
-2. Use LaTeX for ALL mathematical equations. Use $$ for block equations and $ for inline equations.
-3. Include mermaid.js diagrams where helpful (use \`\`\`mermaid ... \`\`\` blocks).
-4. Do NOT output raw JSON. Output pure Markdown.
-Context of the full outline: ${JSON.stringify(currentOutline)}
-You are writing content for the node with title: "${prompt}".`;
+      // Instead of returning a single stream, we create a custom ReadableStream 
+      // that chains multiple Agent streams together.
+      const encoder = new TextEncoder();
+      
+      const stream = new ReadableStream({
+        async start(controller) {
+          try {
+            // Helper to write raw text to the stream
+            const writeText = (text: string) => {
+              controller.enqueue(encoder.encode(text));
+            };
 
-      const result = await streamText({
-        model: openai.chat(modelName),
-        system: systemPrompt,
-        prompt: `Please write the full markdown content for the section: ${prompt}`,
+            // ---------------------------------------------------------
+            // Agent 3: The Writer
+            // ---------------------------------------------------------
+            writeText(`> **[Agent 3: Chief Writer]** Drafting initial content for "${prompt}"...\n\n`);
+            
+            const writerSystem = `You are the Chief Writer for a textbook.
+CRITICAL REQUIREMENTS:
+1. Use extensive Markdown formatting (bolding, quotes, lists, tables).
+2. Use LaTeX for ALL mathematical equations ($$ for block, $ for inline).
+3. Include mermaid.js diagrams where helpful (\`\`\`mermaid ... \`\`\`).
+4. Context of the full outline: ${JSON.stringify(currentOutline)}
+5. You are writing content for the node: "${prompt}".`;
+
+            const writerResult = await streamText({
+              model: openai.chat(modelName),
+              system: writerSystem,
+              prompt: `Write the full markdown content for the section: ${prompt}`,
+            });
+
+            let fullDraft = '';
+            for await (const textPart of writerResult.textStream) {
+              fullDraft += textPart;
+              writeText(textPart);
+            }
+
+            // ---------------------------------------------------------
+            // Agent 4: The Critic
+            // ---------------------------------------------------------
+            writeText(`\n\n---\n\n> **[Agent 4: Critic]** Reviewing draft for pedagogical value and factual accuracy...\n\n`);
+            
+            const criticSystem = `You are a Senior Editor and Critic. 
+Review the provided textbook draft. 
+If it is excellent, just say "APPROVAL: This draft is excellent." and provide 1-2 minor suggestions.
+If it lacks depth, analogies, or clarity, provide a harsh but constructive critique.
+Be extremely concise.`;
+
+            const criticResult = await streamText({
+              model: openai.chat(modelName),
+              system: criticSystem,
+              prompt: `Review this draft:\n\n${fullDraft}`,
+            });
+
+            let fullCritique = '';
+            for await (const textPart of criticResult.textStream) {
+              fullCritique += textPart;
+              writeText(textPart);
+            }
+
+            // ---------------------------------------------------------
+            // Agent 5: The Assessor
+            // ---------------------------------------------------------
+            writeText(`\n\n---\n\n> **[Agent 5: Assessor]** Generating "Knowledge Check" quizzes...\n\n`);
+            
+            const assessorSystem = `You are the Assessor Agent.
+Based on the draft, generate 3 multiple-choice or short-answer questions to test the reader's knowledge.
+Format them nicely using Markdown blockquotes or bold text. Provide the answers at the very end in a collapsible detail block if possible, or just clearly separated.`;
+
+            const assessorResult = await streamText({
+              model: openai.chat(modelName),
+              system: assessorSystem,
+              prompt: `Draft:\n\n${fullDraft}\n\nGenerate the Knowledge Check now.`,
+            });
+
+            for await (const textPart of assessorResult.textStream) {
+              writeText(textPart);
+            }
+
+            controller.close();
+          } catch (err: any) {
+            controller.error(err);
+          }
+        }
       });
 
-      return result.toTextStreamResponse();
+      return new Response(stream, {
+        headers: {
+          'Content-Type': 'text/plain; charset=utf-8',
+          'Transfer-Encoding': 'chunked',
+        },
+      });
     }
 
     return NextResponse.json({ error: 'Invalid operation type' }, { status: 400 });
