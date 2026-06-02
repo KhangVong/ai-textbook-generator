@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { SignInButton, SignedIn, SignedOut } from '@clerk/nextjs';
 import { BookOpen, Network, Zap, Download, Sparkles, ChevronRight } from 'lucide-react';
 
 export default function LandingPage() {
@@ -26,12 +27,23 @@ export default function LandingPage() {
           <a href="#pricing" className="hover:text-foreground transition-colors">Pricing</a>
         </nav>
         <div className="flex items-center space-x-4">
-          <Link href="/editor" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
-            Sign In
-          </Link>
-          <Link href="/editor" className="text-sm bg-foreground text-background px-5 py-2 rounded-full font-medium hover:bg-foreground/90 transition-all hover:scale-105 active:scale-95 shadow-md">
-            Get Started
-          </Link>
+          <SignedOut>
+            <SignInButton mode="modal">
+              <button className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+                Sign In
+              </button>
+            </SignInButton>
+            <SignInButton mode="modal">
+              <button className="text-sm bg-foreground text-background px-5 py-2 rounded-full font-medium hover:bg-foreground/90 transition-all hover:scale-105 active:scale-95 shadow-md">
+                Get Started
+              </button>
+            </SignInButton>
+          </SignedOut>
+          <SignedIn>
+            <Link href="/dashboard" className="text-sm bg-primary text-primary-foreground px-5 py-2 rounded-full font-medium hover:bg-primary/90 transition-all hover:scale-105 active:scale-95 shadow-md">
+              Go to Dashboard
+            </Link>
+          </SignedIn>
         </div>
       </header>
 
@@ -52,10 +64,20 @@ export default function LandingPage() {
         </p>
 
         <div className="flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-4 animate-in fade-in slide-in-from-bottom-10 duration-1000 delay-300 fill-mode-both">
-          <Link href="/editor" className="w-full sm:w-auto flex items-center justify-center bg-primary text-primary-foreground px-8 py-4 rounded-full font-semibold text-lg hover:bg-primary/90 transition-all hover:shadow-[0_0_40px_-10px_rgba(59,130,246,0.5)] hover:-translate-y-1">
-            Start Generating for Free
-            <ChevronRight className="w-5 h-5 ml-2" />
-          </Link>
+          <SignedOut>
+            <SignInButton mode="modal" signUpFallbackRedirectUrl="/dashboard">
+              <button className="w-full sm:w-auto flex items-center justify-center bg-primary text-primary-foreground px-8 py-4 rounded-full font-semibold text-lg hover:bg-primary/90 transition-all hover:shadow-[0_0_40px_-10px_rgba(59,130,246,0.5)] hover:-translate-y-1">
+                Start Generating for Free
+                <ChevronRight className="w-5 h-5 ml-2" />
+              </button>
+            </SignInButton>
+          </SignedOut>
+          <SignedIn>
+            <Link href="/dashboard" className="w-full sm:w-auto flex items-center justify-center bg-primary text-primary-foreground px-8 py-4 rounded-full font-semibold text-lg hover:bg-primary/90 transition-all hover:shadow-[0_0_40px_-10px_rgba(59,130,246,0.5)] hover:-translate-y-1">
+              Go to Dashboard
+              <ChevronRight className="w-5 h-5 ml-2" />
+            </Link>
+          </SignedIn>
           <a href="#demo" className="w-full sm:w-auto flex items-center justify-center bg-secondary/50 backdrop-blur border border-border/50 text-foreground px-8 py-4 rounded-full font-semibold text-lg hover:bg-secondary transition-all">
             View Live Demo
           </a>
