@@ -33,6 +33,15 @@ export async function POST(req: Request) {
       baseURL: baseURL,
     });
 
+    if (type === 'test_connection') {
+      const result = await generateText({
+        model: openai.chat(modelName),
+        prompt: 'Say OK',
+        maxTokens: 5,
+      });
+      return NextResponse.json({ success: true, text: result.text.trim() });
+    }
+
     if (type === 'generate_outline') {
       const systemPrompt = `You are an expert curriculum designer and AI professor. 
 Based on the user's request, create a highly structured, comprehensive textbook outline.
