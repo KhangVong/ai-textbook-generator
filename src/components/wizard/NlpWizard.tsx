@@ -56,10 +56,26 @@ export const NlpWizard = () => {
         throw new Error(errMsg);
       }
 
-      let responseText = await response.text();
+      if (!response.body) throw new Error('Response body is empty');
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let responseText = '';
+      
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        responseText += decoder.decode(value, { stream: true });
+      }
+
       let data;
       try {
-        data = JSON.parse(responseText);
+        let jsonStr = responseText.trim();
+        if (jsonStr.startsWith('```json')) {
+          jsonStr = jsonStr.replace(/^```json\n?/, '').replace(/\n?```$/, '');
+        } else if (jsonStr.startsWith('```')) {
+          jsonStr = jsonStr.replace(/^```\n?/, '').replace(/\n?```$/, '');
+        }
+        data = JSON.parse(jsonStr);
       } catch (jsonErr) {
         throw new Error(`Failed to parse AI response. Server returned: "${responseText.substring(0, 200)}"`);
       }

@@ -48,27 +48,13 @@ The outline should be deeply nested (level 1 = chapters, level 2 = sections, lev
 Ensure each node has a unique 'id' (a short descriptive string without spaces, like 'chap1-intro').
 Return ONLY a valid JSON object matching this structure: { "outline": [ ... ] }. Do not include any markdown formatting, backticks, or explanation.`;
 
-      const result = await generateText({
+      const result = await streamText({
         model: openai.chat(modelName),
         system: systemPrompt,
         prompt: prompt,
       });
 
-      try {
-        let jsonStr = result.text.trim();
-        if (jsonStr.startsWith('```json')) {
-          jsonStr = jsonStr.replace(/^```json\n?/, '').replace(/\n?```$/, '');
-        } else if (jsonStr.startsWith('```')) {
-          jsonStr = jsonStr.replace(/^```\n?/, '').replace(/\n?```$/, '');
-        }
-        
-        const parsed = JSON.parse(jsonStr);
-        // We do not strictly enforce validation failure if DeepSeek adds extra fields, but we parse it.
-        return NextResponse.json(parsed);
-      } catch (e: any) {
-        console.error('JSON Parse Error:', e);
-        throw new Error('Failed to parse outline from AI response. Please try again.');
-      }
+      return result.toTextStreamResponse();
     } 
     
     if (type === 'generate_content') {
