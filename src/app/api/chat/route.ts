@@ -73,8 +73,6 @@ Return ONLY a valid JSON object matching this structure: { "outline": [ ... ] }.
             // ---------------------------------------------------------
             // Agent 3: The Writer
             // ---------------------------------------------------------
-            writeText(`> **[Agent 3: Chief Writer]** Drafting initial content for "${prompt}"...\n\n`);
-            
             const writerSystem = `You are the Chief Writer for a textbook.
 CRITICAL REQUIREMENTS:
 1. Use extensive Markdown formatting (bolding, quotes, lists, tables).
@@ -96,10 +94,8 @@ CRITICAL REQUIREMENTS:
             }
 
             // ---------------------------------------------------------
-            // Agent 4: The Critic
+            // Agent 4: The Critic (Runs in background, output hidden)
             // ---------------------------------------------------------
-            writeText(`\n\n---\n\n> **[Agent 4: Critic]** Reviewing draft for pedagogical value and factual accuracy...\n\n`);
-            
             const criticSystem = `You are a Senior Editor and Critic. 
 Review the provided textbook draft. 
 If it is excellent, just say "APPROVAL: This draft is excellent." and provide 1-2 minor suggestions.
@@ -115,26 +111,30 @@ Be extremely concise.`;
             let fullCritique = '';
             for await (const textPart of criticResult.textStream) {
               fullCritique += textPart;
-              writeText(textPart);
+              // NOT writing to stream so it's hidden from user
             }
 
             // ---------------------------------------------------------
-            // Agent 5: The Assessor
+            // Agent 5: The Assessor (Optional)
             // ---------------------------------------------------------
-            writeText(`\n\n---\n\n> **[Agent 5: Assessor]** Generating "Knowledge Check" quizzes...\n\n`);
+            const enableQuizzes = req.headers.get('X-Enable-Quizzes') === 'true';
             
-            const assessorSystem = `You are the Assessor Agent.
+            if (enableQuizzes) {
+              writeText(`\n\n---\n\n`); // separator for quizzes
+              
+              const assessorSystem = `You are the Assessor Agent.
 Based on the draft, generate 3 multiple-choice or short-answer questions to test the reader's knowledge.
 Format them nicely using Markdown blockquotes or bold text. Provide the answers at the very end in a collapsible detail block if possible, or just clearly separated.`;
 
-            const assessorResult = await streamText({
-              model: openai.chat(modelName),
-              system: assessorSystem,
-              prompt: `Draft:\n\n${fullDraft}\n\nGenerate the Knowledge Check now.`,
-            });
+              const assessorResult = await streamText({
+                model: openai.chat(modelName),
+                system: assessorSystem,
+                prompt: `Draft:\n\n${fullDraft}\n\nGenerate the Knowledge Check now.`,
+              });
 
-            for await (const textPart of assessorResult.textStream) {
-              writeText(textPart);
+              for await (const textPart of assessorResult.textStream) {
+                writeText(textPart);
+              }
             }
 
             controller.close();

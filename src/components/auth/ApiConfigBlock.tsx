@@ -6,11 +6,12 @@ import { saveConfig, loadConfig, clearConfig } from '@/utils/storage';
 import { Settings2, Eye, EyeOff, Save, Trash2 } from 'lucide-react';
 
 export const ApiConfigBlock = () => {
-  const { apiKey, setApiKey, baseURL, setBaseURL, modelName, setModelName } = useTextbookStore();
+  const { apiKey, setApiKey, baseURL, setBaseURL, modelName, setModelName, enableQuizzes, setEnableQuizzes } = useTextbookStore();
   
   const [inputKey, setInputKey] = useState('');
   const [inputUrl, setInputUrl] = useState('');
   const [inputModel, setInputModel] = useState('');
+  const [inputEnableQuizzes, setInputEnableQuizzes] = useState(true);
   const [showKey, setShowKey] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
 
@@ -29,13 +30,15 @@ export const ApiConfigBlock = () => {
     setInputKey(apiKey || '');
     setInputUrl(baseURL);
     setInputModel(modelName);
-  }, [apiKey, baseURL, modelName]);
+    setInputEnableQuizzes(enableQuizzes);
+  }, [apiKey, baseURL, modelName, enableQuizzes]);
 
   const handleSave = () => {
     saveConfig(inputKey.trim(), inputUrl.trim(), inputModel.trim());
     setApiKey(inputKey.trim() || null);
     setBaseURL(inputUrl.trim());
     setModelName(inputModel.trim());
+    setEnableQuizzes(inputEnableQuizzes);
     setIsSaved(true);
     setTimeout(() => setIsSaved(false), 2000);
   };
@@ -137,6 +140,19 @@ export const ApiConfigBlock = () => {
             placeholder="gpt-4o"
             className="w-full px-3 py-1.5 text-sm bg-background text-foreground border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-zinc-500/50"
           />
+        </div>
+
+        <div className="flex items-center mt-2">
+          <input
+            type="checkbox"
+            id="enable-quizzes"
+            checked={inputEnableQuizzes}
+            onChange={(e) => setInputEnableQuizzes(e.target.checked)}
+            className="w-3.5 h-3.5 text-primary bg-background border-border rounded focus:ring-primary focus:ring-1"
+          />
+          <label htmlFor="enable-quizzes" className="ml-2 text-xs font-medium text-foreground">
+            Enable Agent 5 (Assessor) Quizzes
+          </label>
         </div>
 
         {testResult && (

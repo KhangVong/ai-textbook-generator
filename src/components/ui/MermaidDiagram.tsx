@@ -26,7 +26,16 @@ export const MermaidDiagram: React.FC<MermaidProps> = ({ chart }) => {
         setError(null);
         // Create a unique ID for the mermaid render
         const id = `mermaid-${Math.random().toString(36).substring(7)}`;
-        const { svg: renderedSvg } = await mermaid.render(id, chart);
+        
+        // Clean up common LLM hallucination errors in mermaid blocks
+        let cleanChart = chart.trim();
+        if (cleanChart.toLowerCase().startsWith('mermaid')) {
+          cleanChart = cleanChart.substring(7).trim();
+        }
+        // Remove trailing backticks if any leaked
+        cleanChart = cleanChart.replace(/```$/, '').trim();
+
+        const { svg: renderedSvg } = await mermaid.render(id, cleanChart);
         
         if (isMounted) {
           setSvg(renderedSvg);

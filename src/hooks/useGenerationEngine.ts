@@ -62,6 +62,7 @@ export const useGenerationEngine = () => {
       updateNodeContent(node.id, '');
 
       try {
+        const { enableQuizzes } = useTextbookStore.getState();
         const response = await fetch('/api/chat', {
           method: 'POST',
           headers: {
@@ -69,6 +70,7 @@ export const useGenerationEngine = () => {
             'X-OpenAI-Key': apiKey || '',
             'X-Base-URL': baseURL,
             'X-Model-Name': modelName,
+            'X-Enable-Quizzes': enableQuizzes ? 'true' : 'false',
           },
           body: JSON.stringify({
             type: 'generate_content',

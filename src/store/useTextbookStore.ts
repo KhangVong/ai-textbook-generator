@@ -25,6 +25,7 @@ interface TextbookState {
   apiKey: string | null;
   baseURL: string;
   modelName: string;
+  enableQuizzes: boolean;
   status: AppStatus;
   
   // UI States
@@ -40,6 +41,7 @@ interface TextbookState {
   setApiKey: (key: string | null) => void;
   setBaseURL: (url: string) => void;
   setModelName: (model: string) => void;
+  setEnableQuizzes: (enable: boolean) => void;
   setOutline: (outline: OutlineNode[]) => void;
   setStatus: (status: AppStatus) => void;
   updateNodeContent: (id: string, content: string) => void;
@@ -108,13 +110,15 @@ export const useTextbookStore = create<TextbookState>()(
       isEditMode: false,
       selectedNodeId: null,
       activeProjectId: null,
-      isSettingsOpen: false,
+      // Settings states
+      enableQuizzes: true,
 
       setTitle: (title) => set({ title }),
       setMetadata: (metadata) => set({ metadata }),
       setApiKey: (key) => set({ apiKey: key }),
       setBaseURL: (url) => set({ baseURL: url }),
       setModelName: (model) => set({ modelName: model }),
+      setEnableQuizzes: (enable) => set({ enableQuizzes: enable }),
       setOutline: (outline) => set({ outline }),
       setStatus: (status) => set({ status }),
       setCurrentView: (view) => set({ currentView: view }),
@@ -149,6 +153,7 @@ export const useTextbookStore = create<TextbookState>()(
         apiKey: state.apiKey,
         baseURL: state.baseURL,
         modelName: state.modelName,
+        enableQuizzes: state.enableQuizzes,
         currentView: state.currentView,
       }),
     }
