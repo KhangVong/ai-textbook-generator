@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 import { v4 as uuidv4 } from 'uuid';
 
 export interface OutlineNode {
@@ -85,48 +86,61 @@ const addNodeRecursive = (nodes: OutlineNode[], parentId: string, newNode: Outli
   });
 };
 
-export const useTextbookStore = create<TextbookState>((set) => ({
-  title: 'Untitled Textbook',
-  outline: [],
-  apiKey: null,
-  baseURL: 'https://api.openai.com/v1',
-  modelName: 'gpt-4o',
-  status: 'IDLE',
-  currentView: 'READ',
-  isEditMode: false,
-  selectedNodeId: null,
-  activeProjectId: null,
-  isSettingsOpen: false,
+export const useTextbookStore = create<TextbookState>()(
+  persist(
+    (set) => ({
+      title: 'Untitled Textbook',
+      outline: [],
+      apiKey: null,
+      baseURL: 'https://api.openai.com/v1',
+      modelName: 'gpt-4o',
+      status: 'IDLE',
+      currentView: 'READ',
+      isEditMode: false,
+      selectedNodeId: null,
+      activeProjectId: null,
+      isSettingsOpen: false,
 
-  setTitle: (title) => set({ title }),
-  setApiKey: (key) => set({ apiKey: key }),
-  setBaseURL: (url) => set({ baseURL: url }),
-  setModelName: (model) => set({ modelName: model }),
-  setOutline: (outline) => set({ outline }),
-  setStatus: (status) => set({ status }),
-  setCurrentView: (view) => set({ currentView: view }),
-  setIsEditMode: (isEdit) => set({ isEditMode: isEdit }),
-  setSelectedNodeId: (id) => set({ selectedNodeId: id }),
-  setIsSettingsOpen: (open) => set({ isSettingsOpen: open }),
+      setTitle: (title) => set({ title }),
+      setApiKey: (key) => set({ apiKey: key }),
+      setBaseURL: (url) => set({ baseURL: url }),
+      setModelName: (model) => set({ modelName: model }),
+      setOutline: (outline) => set({ outline }),
+      setStatus: (status) => set({ status }),
+      setCurrentView: (view) => set({ currentView: view }),
+      setIsEditMode: (isEdit) => set({ isEditMode: isEdit }),
+      setSelectedNodeId: (id) => set({ selectedNodeId: id }),
+      setIsSettingsOpen: (open) => set({ isSettingsOpen: open }),
 
-  updateNodeContent: (id, content) => set((state) => ({
-    outline: updateNodeRecursive(state.outline, id, (node) => ({ ...node, content }))
-  })),
+      updateNodeContent: (id, content) => set((state) => ({
+        outline: updateNodeRecursive(state.outline, id, (node) => ({ ...node, content }))
+      })),
 
-  updateNodeTitle: (id, title) => set((state) => ({
-    outline: updateNodeRecursive(state.outline, id, (node) => ({ ...node, title }))
-  })),
+      updateNodeTitle: (id, title) => set((state) => ({
+        outline: updateNodeRecursive(state.outline, id, (node) => ({ ...node, title }))
+      })),
 
-  addNode: (parentId, newNode) => set((state) => {
-    if (!parentId) {
-      return { outline: [...state.outline, newNode] };
+      addNode: (parentId, newNode) => set((state) => {
+        if (!parentId) {
+          return { outline: [...state.outline, newNode] };
+        }
+        return {
+          outline: addNodeRecursive(state.outline, parentId, newNode)
+        };
+      }),
+
+      deleteNode: (id) => set((state) => ({
+        outline: deleteNodeRecursive(state.outline, id)
+      })),
+    }),
+    {
+      name: 'anyknowledge-settings',
+      partialize: (state) => ({
+        apiKey: state.apiKey,
+        baseURL: state.baseURL,
+        modelName: state.modelName,
+        currentView: state.currentView,
+      }),
     }
-    return {
-      outline: addNodeRecursive(state.outline, parentId, newNode)
-    };
-  }),
-
-  deleteNode: (id) => set((state) => ({
-    outline: deleteNodeRecursive(state.outline, id)
-  })),
-}));
+  )
+);
