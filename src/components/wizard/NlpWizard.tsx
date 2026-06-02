@@ -95,18 +95,21 @@ export const NlpWizard = () => {
         const finalTitle = prompt.length > 30 ? prompt.substring(0, 30) + '...' : prompt;
         
         if (userId) {
-          const { data: insertedProject, error: dbError } = await supabase
-            .from('projects')
-            .insert({
-              user_id: userId,
+          const res = await fetch('/api/projects', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
               title: finalTitle,
               outline_data: finalOutline
             })
-            .select('id')
-            .single();
+          });
 
-          if (dbError) throw new Error(`Failed to save project to database: ${dbError.message}`);
+          if (!res.ok) {
+            const errData = await res.json().catch(() => ({}));
+            throw new Error(`Failed to save project to database: ${errData.error || res.statusText}`);
+          }
           
+          const insertedProject = await res.json();
           router.push(`/book/${insertedProject.id}`);
         } else {
           setOutline(finalOutline);

@@ -69,10 +69,11 @@ export const useGenerationEngine = () => {
       
       const currentState = useTextbookStore.getState();
       if (currentState.activeProjectId) {
-        await supabase
-          .from('projects')
-          .update({ outline_data: currentState.outline })
-          .eq('id', currentState.activeProjectId);
+        await fetch(`/api/projects/${currentState.activeProjectId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ outline_data: currentState.outline })
+        }).catch(err => console.error('Failed to sync to database:', err));
       }
       
       completed++;
