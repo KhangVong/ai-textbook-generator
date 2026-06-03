@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useTextbookStore, BookMetadata } from '@/store/useTextbookStore';
-import { BookOpen, Sparkles, Loader2, ArrowRight, UserCircle, MessageSquare, BookMarked } from 'lucide-react';
+import { BookOpen, Sparkles, Loader2, ArrowRight, UserCircle, MessageSquare, BookMarked, Compass } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import { useAuth } from '@clerk/nextjs';
 import { useRouter } from 'next/navigation';
@@ -23,7 +23,7 @@ export const NlpWizard = () => {
   const checkConfig = () => {
     const isCustomUrl = baseURL && !baseURL.includes('api.openai.com');
     if (!apiKey && !isCustomUrl) {
-      setError('Please configure your API Key first using the settings icon in the top right.');
+      setError('Please configure your API Key first using the settings icon (in the bottom-left sidebar or settings top modal).');
       return false;
     }
     return true;
@@ -171,31 +171,30 @@ Prerequisites: ${localMetadata.prerequisites}
   };
 
   return (
-    <div className="w-full max-w-2xl mx-auto">
-      <div className="relative group">
-        <div className="absolute -inset-0.5 bg-zinc-200 dark:bg-zinc-800 rounded-2xl blur opacity-30 group-hover:opacity-40 transition duration-1000"></div>
-        <div className="relative flex flex-col bg-card border border-border rounded-2xl premium-shadow overflow-hidden">
+    <div className="w-full max-w-2xl mx-auto px-4">
+      <div className="relative">
+        <div className="relative flex flex-col bg-card border border-border rounded-xl premium-shadow overflow-hidden min-h-[160px]">
           
           {isLoading && (
-            <div className="absolute inset-0 z-10 bg-card/90 backdrop-blur-md flex flex-col items-center justify-center">
-              <Loader2 className="w-8 h-8 animate-spin text-primary mb-4" />
-              <span className="font-semibold text-zinc-800 dark:text-zinc-200">
-                {step === 'INPUT' ? 'Agent 1 (Profiler) is analyzing your request...' : 'Agent 2 (Architect) is designing the curriculum...'}
+            <div className="absolute inset-0 z-10 bg-card/95 backdrop-blur-md flex flex-col items-center justify-center p-8 text-center animate-in fade-in duration-200">
+              <Loader2 className="w-6 h-6 animate-spin text-foreground mb-4" />
+              <span className="text-sm font-medium tracking-tight text-foreground">
+                {step === 'INPUT' ? 'Agent 1: Profiler is analyzing target parameters...' : 'Agent 2: Architect is structure mapping the curriculum...'}
               </span>
             </div>
           )}
 
           {step === 'INPUT' && (
-            <div className="flex items-center">
-              <div className="pl-6 text-primary">
-                <Sparkles className="w-6 h-6" />
+            <div className="flex items-center w-full">
+              <div className="pl-5 text-muted-foreground">
+                <Compass className="w-5 h-5" />
               </div>
               <input
                 type="text"
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
-                placeholder="What do you want to learn or teach? E.g., AI Product Management..."
-                className="w-full px-4 py-6 bg-transparent focus:outline-none text-card-foreground placeholder-muted-foreground text-lg"
+                placeholder="What topic do you wish to master? E.g., Microeconomics..."
+                className="w-full px-4 py-6 bg-transparent focus:outline-none text-foreground placeholder-muted-foreground/60 text-base"
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') handleProfilePrompt();
                 }}
@@ -204,75 +203,75 @@ Prerequisites: ${localMetadata.prerequisites}
               <button
                 onClick={handleProfilePrompt}
                 disabled={isLoading || !prompt.trim()}
-                className="mx-2 my-2 px-6 py-3 bg-primary text-primary-foreground font-medium rounded-xl hover:bg-primary/90 transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:scale-100 flex items-center space-x-2 shrink-0"
+                className="mr-3 shrink-0 flex items-center justify-center w-10 h-10 rounded-lg bg-primary text-primary-foreground hover:opacity-90 transition-all disabled:opacity-30 disabled:scale-100"
+                title="Next"
               >
-                <span>Next</span>
-                <ArrowRight className="w-4 h-4 ml-1" />
+                <ArrowRight className="w-4 h-4" />
               </button>
             </div>
           )}
 
           {step === 'PROFILE_CONFIRM' && (
-            <div className="p-6 flex flex-col space-y-6 animate-in fade-in slide-in-from-bottom-4">
+            <div className="p-6 flex flex-col space-y-6 animate-in fade-in duration-300">
               <div className="flex items-center justify-between border-b border-border pb-4">
-                <h3 className="font-semibold text-lg flex items-center">
-                  <UserCircle className="w-5 h-5 mr-2 text-primary" />
-                  Target Persona Profile
+                <h3 className="font-semibold text-sm tracking-tight flex items-center">
+                  <UserCircle className="w-4 h-4 mr-2" />
+                  Curriculum Persona settings
                 </h3>
                 <button 
                   onClick={() => setStep('INPUT')}
-                  className="text-sm text-muted-foreground hover:text-foreground"
+                  className="text-xs text-muted-foreground hover:text-foreground transition-colors"
                 >
                   Edit Topic
                 </button>
               </div>
               
               <div className="space-y-4">
-                <div className="space-y-1.5">
-                  <label className="text-sm font-medium flex items-center text-muted-foreground">
-                    <UserCircle className="w-4 h-4 mr-2" />
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground flex items-center">
+                    <UserCircle className="w-3.5 h-3.5 mr-1.5" />
                     Target Audience
                   </label>
                   <input
                     type="text"
                     value={localMetadata.targetAudience || ''}
                     onChange={(e) => setLocalMetadata({ ...localMetadata, targetAudience: e.target.value })}
-                    className="w-full bg-secondary/50 border border-border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+                    className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary transition-all"
                   />
                 </div>
                 
-                <div className="space-y-1.5">
-                  <label className="text-sm font-medium flex items-center text-muted-foreground">
-                    <MessageSquare className="w-4 h-4 mr-2" />
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground flex items-center">
+                    <MessageSquare className="w-3.5 h-3.5 mr-1.5" />
                     Tone & Style
                   </label>
                   <input
                     type="text"
                     value={localMetadata.tone || ''}
                     onChange={(e) => setLocalMetadata({ ...localMetadata, tone: e.target.value })}
-                    className="w-full bg-secondary/50 border border-border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+                    className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary transition-all"
                   />
                 </div>
                 
-                <div className="space-y-1.5">
-                  <label className="text-sm font-medium flex items-center text-muted-foreground">
-                    <BookMarked className="w-4 h-4 mr-2" />
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground flex items-center">
+                    <BookMarked className="w-3.5 h-3.5 mr-1.5" />
                     Prerequisites
                   </label>
                   <input
                     type="text"
                     value={localMetadata.prerequisites || ''}
                     onChange={(e) => setLocalMetadata({ ...localMetadata, prerequisites: e.target.value })}
-                    className="w-full bg-secondary/50 border border-border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+                    className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary transition-all"
                   />
                 </div>
               </div>
 
-              <div className="pt-4 flex justify-end">
+              <div className="pt-2 flex justify-end">
                 <button
                   onClick={handleGenerateOutline}
                   disabled={isLoading}
-                  className="px-6 py-2.5 bg-primary text-primary-foreground font-medium rounded-lg hover:bg-primary/90 transition-all hover:scale-105 active:scale-95 flex items-center shadow-lg shadow-primary/20"
+                  className="px-5 py-2 bg-primary text-primary-foreground font-medium rounded-lg hover:opacity-90 transition-all text-sm flex items-center"
                 >
                   <BookOpen className="w-4 h-4 mr-2" />
                   Generate Curriculum
@@ -285,7 +284,7 @@ Prerequisites: ${localMetadata.prerequisites}
       </div>
       
       {error && (
-        <div className="mt-4 p-4 bg-destructive/10 border border-destructive/20 text-destructive rounded-xl text-sm flex items-start">
+        <div className="mt-4 p-3 bg-red-500/5 border border-red-500/10 text-red-500 rounded-lg text-xs flex items-start">
           {error}
         </div>
       )}

@@ -7,7 +7,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
 import remarkGfm from 'remark-gfm';
 import rehypeKatex from 'rehype-katex';
-import { Loader2, Play, Lock, Unlock, Edit3, Trash2, ZoomIn, ZoomOut, Settings } from 'lucide-react';
+import { Loader2, Play, Lock, Unlock, Edit3, Trash2, ZoomIn, ZoomOut, Settings, Plus, BookOpen } from 'lucide-react';
 import { MermaidDiagram } from '@/components/ui/MermaidDiagram';
 
 export const ReadView = () => {
@@ -56,26 +56,40 @@ export const ReadView = () => {
   return (
     <div className="flex h-full w-full">
       {/* Left Sidebar: Outline Directory */}
-      <div className="w-80 border-r border-border bg-card/50 backdrop-blur flex flex-col h-full shrink-0">
-        <div className="px-6 py-4 border-b border-border/50 flex items-center justify-between">
-          <h3 className="font-semibold text-sm">Table of Contents</h3>
+      <div className="w-80 border-r border-border bg-card/45 backdrop-blur flex flex-col h-full shrink-0">
+        <div className="px-6 py-4 border-b border-border flex items-center justify-between">
+          <span className="font-semibold text-xs tracking-wider uppercase text-muted-foreground">Directory</span>
+          {isEditMode && (
+            <span className="text-[10px] text-amber-600 bg-amber-500/5 px-2 py-0.5 rounded border border-amber-500/15">
+              Edit Mode Active
+            </span>
+          )}
         </div>
         
-        <div className="flex-1 overflow-y-auto p-4 space-y-1">
+        <div className="flex-1 overflow-y-auto p-4 space-y-1 directory-list">
           {allNodes.map((node) => {
             const isActive = activeNodeId === node.id;
             const hasContent = !!node.content;
+            const level = Math.max(1, node.level);
             
             return (
               <div 
                 key={node.id}
                 onClick={() => setSelectedNodeId(node.id)}
-                className={`group flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer transition-all ${
-                  isActive ? 'bg-primary/10 text-primary font-medium' : 'hover:bg-secondary text-muted-foreground'
+                className={`group relative flex items-center justify-between px-3 py-2 rounded-md cursor-pointer transition-all ${
+                  isActive ? 'bg-primary/5 text-foreground font-medium' : 'hover:bg-secondary/40 text-muted-foreground hover:text-foreground'
                 }`}
-                style={{ paddingLeft: `${Math.max(1, node.level) * 1.5 - 0.5}rem` }}
+                style={{ marginLeft: `${(level - 1) * 1.25}rem` }}
               >
-                <div className="flex-1 truncate mr-2">
+                {/* Visual Branch Line for Nested items */}
+                {level > 1 && (
+                  <div 
+                    className="absolute top-0 bottom-0 bg-border/80 w-[1px]"
+                    style={{ left: `-0.625rem` }}
+                  />
+                )}
+
+                <div className="flex-1 truncate mr-2 flex items-center min-w-0">
                   {editingTitleId === node.id ? (
                     <input 
                       autoFocus
@@ -83,36 +97,45 @@ export const ReadView = () => {
                       onChange={(e) => setLocalTitle(e.target.value)}
                       onBlur={(e) => handleTitleEditSave(e, node.id)}
                       onKeyDown={(e) => handleTitleEditSave(e, node.id)}
-                      className="bg-background border border-border px-2 py-0.5 rounded text-sm w-full text-foreground"
+                      className="bg-background border border-border px-2 py-0.5 rounded text-xs w-full text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
                     />
                   ) : (
                     <span 
-                      className="text-sm truncate"
-                      onDoubleClick={(e) => handleTitleEditStart(e, node)}
+                      className="text-xs truncate"
+                      title={node.title}
                     >
                       {node.title}
                     </span>
                   )}
                 </div>
 
-                <div className="flex items-center space-x-1 shrink-0">
-                  {isEditMode && (
-                    <button 
-                      onClick={(e) => { e.stopPropagation(); deleteNode(node.id); }}
-                      className="opacity-0 group-hover:opacity-100 p-1 text-destructive hover:bg-destructive/10 rounded transition-opacity"
-                      title="Delete Section"
-                    >
-                      <Trash2 className="w-3 h-3" />
-                    </button>
+                <div className="flex items-center space-x-1.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                  {isEditMode && editingTitleId !== node.id && (
+                    <>
+                      <button 
+                        onClick={(e) => handleTitleEditStart(e, node)}
+                        className="p-1 text-muted-foreground hover:text-foreground hover:bg-secondary rounded"
+                        title="Rename Section"
+                      >
+                        <Edit3 className="w-3 h-3" />
+                      </button>
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); deleteNode(node.id); }}
+                        className="p-1 text-red-500 hover:bg-red-500/10 rounded"
+                        title="Delete Section"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                    </>
                   )}
                   
-                  {!hasContent && (
+                  {!hasContent && !isGenerating && (
                     <button 
                       onClick={(e) => handleGenerateClick(e, node.id)}
-                      className={`p-1.5 rounded-full transition-colors ${isActive ? 'bg-primary text-primary-foreground hover:bg-primary/80' : 'bg-secondary-foreground/10 hover:bg-primary hover:text-primary-foreground'}`}
+                      className="p-1 text-accent hover:bg-accent/10 rounded-full"
                       title="Generate this section"
                     >
-                      <Play className="w-3 h-3" />
+                      <Play className="w-3 h-3 fill-current" />
                     </button>
                   )}
                 </div>
@@ -122,59 +145,59 @@ export const ReadView = () => {
         </div>
         
         {/* Sidebar Footer with Settings */}
-        <div className="p-4 border-t border-border/50 bg-secondary/10 flex items-center shrink-0">
+        <div className="p-4 border-t border-border bg-secondary/10 flex items-center shrink-0">
           <button 
             onClick={() => setIsSettingsOpen(true)}
-            className="flex items-center text-sm text-muted-foreground hover:text-foreground transition-colors space-x-2 py-1.5 px-3 rounded-lg hover:bg-secondary w-full"
+            className="flex items-center text-xs text-muted-foreground hover:text-foreground transition-colors space-x-2 py-2 px-3 rounded-lg hover:bg-secondary w-full"
             title="Configure model and API settings"
           >
             <Settings className="w-4 h-4" />
-            <span>Settings</span>
+            <span>Settings & Keys</span>
           </button>
         </div>
       </div>
 
       {/* Right Main Area: Content Reader */}
-      <div className="flex-1 h-full overflow-y-auto bg-background/50">
-        <div className="max-w-4xl mx-auto py-12 px-12">
+      <div className="flex-1 h-full overflow-y-auto bg-background/30">
+        <div className="max-w-3xl mx-auto py-16 px-12">
           {!activeNode ? (
             <div className="h-full flex flex-col items-center justify-center text-muted-foreground mt-32">
-              <BookPlaceholderIcon className="w-16 h-16 mb-4 opacity-20" />
-              <p>Select a chapter from the table of contents</p>
+              <BookOpen className="w-12 h-12 mb-4 opacity-25" />
+              <p className="text-xs">Select a chapter from the table of contents</p>
             </div>
           ) : (
-            <div className="prose prose-slate dark:prose-invert max-w-none">
+            <div className="prose prose-neutral dark:prose-invert max-w-none">
               {/* Reader Header with Zoom Controls */}
-              <div className="flex items-center justify-between mb-8 pb-4 border-b border-border/50">
-                <h1 className="text-4xl font-extrabold tracking-tight m-0">
+              <div className="flex items-center justify-between mb-12 pb-5 border-b border-border">
+                <h1 className="text-4xl tracking-tight m-0 font-serif font-normal text-balance">
                   {activeNode.title}
                 </h1>
-                <div className="flex items-center space-x-2 bg-secondary/50 rounded-full p-1 border border-border/50">
-                  <button onClick={() => setZoomLevel(Math.max(0.8, zoomLevel - 0.1))} className="p-2 hover:bg-background rounded-full transition-colors text-muted-foreground hover:text-foreground">
-                    <ZoomOut className="w-4 h-4" />
+                <div className="flex items-center space-x-2 bg-secondary/40 rounded-lg p-0.5 border border-border">
+                  <button onClick={() => setZoomLevel(Math.max(0.8, zoomLevel - 0.1))} className="p-1.5 hover:bg-card rounded transition-colors text-muted-foreground hover:text-foreground">
+                    <ZoomOut className="w-3.5 h-3.5" />
                   </button>
-                  <span className="text-xs font-medium w-12 text-center">{Math.round(zoomLevel * 100)}%</span>
-                  <button onClick={() => setZoomLevel(Math.min(1.5, zoomLevel + 0.1))} className="p-2 hover:bg-background rounded-full transition-colors text-muted-foreground hover:text-foreground">
-                    <ZoomIn className="w-4 h-4" />
+                  <span className="text-[10px] font-medium w-8 text-center">{Math.round(zoomLevel * 100)}%</span>
+                  <button onClick={() => setZoomLevel(Math.min(1.5, zoomLevel + 0.1))} className="p-1.5 hover:bg-card rounded transition-colors text-muted-foreground hover:text-foreground">
+                    <ZoomIn className="w-3.5 h-3.5" />
                   </button>
                 </div>
               </div>
               
               {!activeNode.content ? (
-                <div className="flex flex-col items-center justify-center p-12 border-2 border-dashed border-border rounded-xl bg-secondary/20">
+                <div className="flex flex-col items-center justify-center py-16 px-8 border border-dashed border-border rounded-xl bg-card/50">
                   {isGenerating ? (
                     <>
-                      <Loader2 className="w-8 h-8 animate-spin text-primary mb-4" />
-                      <p className="text-muted-foreground font-medium">Generating content for this section...</p>
+                      <Loader2 className="w-6 h-6 animate-spin text-muted-foreground mb-4" />
+                      <p className="text-xs text-muted-foreground font-medium">Generating content for this section...</p>
                     </>
                   ) : (
                     <>
-                      <p className="text-muted-foreground mb-4">This section has not been generated yet.</p>
+                      <p className="text-xs text-muted-foreground mb-4">This section has not been generated yet.</p>
                       <button 
                         onClick={(e) => handleGenerateClick(e, activeNode.id)}
-                        className="flex items-center bg-primary text-primary-foreground px-6 py-2.5 rounded-full font-medium hover:bg-primary/90 shadow-md transition-all hover:scale-105 active:scale-95"
+                        className="flex items-center bg-primary text-primary-foreground px-5 py-2.5 rounded-lg font-medium hover:opacity-90 shadow-sm transition-all text-xs"
                       >
-                        <Play className="w-4 h-4 mr-2" />
+                        <Play className="w-3.5 h-3.5 mr-2" />
                         Generate Now
                       </button>
                     </>
@@ -182,8 +205,8 @@ export const ReadView = () => {
                 </div>
               ) : (
                 <div 
-                  className="markdown-content"
-                  style={{ fontSize: `${zoomLevel}rem`, lineHeight: 1.7 }}
+                  className="markdown-content font-sans antialiased text-foreground/90 font-light"
+                  style={{ fontSize: `${zoomLevel}rem`, lineHeight: 1.75 }}
                 >
                   <ReactMarkdown 
                     remarkPlugins={[remarkMath, remarkGfm]} 
@@ -195,9 +218,53 @@ export const ReadView = () => {
                           return <MermaidDiagram chart={String(children).replace(/\n$/, '')} />;
                         }
                         return (
-                          <code className={className} {...props}>
+                          <code className="bg-secondary/40 border border-border px-1.5 py-0.5 rounded text-[0.9em] font-mono" {...props}>
                             {children}
                           </code>
+                        );
+                      },
+                      p({ children }) {
+                        return <p className="mb-6 leading-relaxed text-sm md:text-base font-light text-foreground/80">{children}</p>;
+                      },
+                      h1({ children }) {
+                        return <h2 className="text-2xl font-serif font-normal tracking-tight mt-12 mb-6 text-foreground">{children}</h2>;
+                      },
+                      h2({ children }) {
+                        return <h3 className="text-xl font-serif font-normal tracking-tight mt-8 mb-4 text-foreground">{children}</h3>;
+                      },
+                      h3({ children }) {
+                        return <h4 className="text-lg font-sans font-medium tracking-tight mt-6 mb-3 text-foreground">{children}</h4>;
+                      },
+                      ul({ children }) {
+                        return <ul className="list-disc pl-6 mb-6 space-y-2 text-sm md:text-base font-light text-foreground/80">{children}</ul>;
+                      },
+                      ol({ children }) {
+                        return <ol className="list-decimal pl-6 mb-6 space-y-2 text-sm md:text-base font-light text-foreground/80">{children}</ol>;
+                      },
+                      li({ children }) {
+                        return <li className="pl-1 leading-relaxed">{children}</li>;
+                      },
+                      table({ children }) {
+                        return (
+                          <div className="overflow-x-auto my-8 border border-border rounded-xl bg-card/40">
+                            <table className="min-w-full divide-y divide-border text-sm">{children}</table>
+                          </div>
+                        );
+                      },
+                      thead({ children }) {
+                        return <thead className="bg-secondary/20">{children}</thead>;
+                      },
+                      th({ children }) {
+                        return <th className="px-4 py-3 text-left font-medium text-xs tracking-wider text-muted-foreground uppercase">{children}</th>;
+                      },
+                      td({ children }) {
+                        return <td className="px-4 py-3 text-foreground/80 border-t border-border font-light">{children}</td>;
+                      },
+                      blockquote({ children }) {
+                        return (
+                          <blockquote className="border-l-2 border-primary pl-6 italic my-8 text-muted-foreground text-sm font-serif">
+                            {children}
+                          </blockquote>
                         );
                       }
                     }}
@@ -213,9 +280,3 @@ export const ReadView = () => {
     </div>
   );
 };
-
-const BookPlaceholderIcon = (props: React.SVGProps<SVGSVGElement>) => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
-    <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20" />
-  </svg>
-);

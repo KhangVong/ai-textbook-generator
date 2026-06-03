@@ -116,7 +116,7 @@ CRITICAL REQUIREMENTS:
 
               writeText('[STATUS]Agent 4: 🔍 搜索智能体正在联网核查初稿中的案例...[/STATUS]\n');
 
-              const searchWeb = {
+              const searchWeb: any = {
                 description: 'Search Google for factual verification of examples or claims.',
                 parameters: z.object({ query: z.string() }),
                 execute: async ({ query }: { query: string }) => {
@@ -146,9 +146,9 @@ Do NOT output any metadata or comments. Output ONLY the final, polished, and fac
                 model: openai.chat(modelName),
                 system: factCheckerSystem,
                 prompt: `Here is the draft. Verify it, modify it if necessary, and output the final version:\n\n${fullDraft}`,
-                tools: { searchWeb },
+                tools: { searchWeb: searchWeb as any },
                 maxSteps: 3, // Allow the agent to search up to 2 times before answering
-              });
+              } as any);
 
               for await (const textPart of factCheckerResult.textStream) {
                 // Ensure we capture the final text for Assessor Agent
