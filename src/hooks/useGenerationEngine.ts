@@ -62,7 +62,7 @@ export const useGenerationEngine = () => {
       updateNodeContent(node.id, '');
 
       try {
-        const { enableQuizzes } = useTextbookStore.getState();
+        const { enableQuizzes, googleApiKey, googleCx } = useTextbookStore.getState();
         const response = await fetch('/api/chat', {
           method: 'POST',
           headers: {
@@ -71,6 +71,8 @@ export const useGenerationEngine = () => {
             'X-Base-URL': baseURL,
             'X-Model-Name': modelName,
             'X-Enable-Quizzes': enableQuizzes ? 'true' : 'false',
+            'X-Google-Key': googleApiKey || '',
+            'X-Google-Cx': googleCx || '',
           },
           body: JSON.stringify({
             type: 'generate_content',
@@ -89,7 +91,8 @@ export const useGenerationEngine = () => {
 
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
-        let content = '';
+        let fullText = '';
+        let currentStatus = '';
 
         while (true) {
           if (abortControllerRef.current?.signal.aborted) {
@@ -99,9 +102,27 @@ export const useGenerationEngine = () => {
           if (done) break;
           
           const chunk = decoder.decode(value, { stream: true });
-          content += chunk;
-          updateNodeContent(node.id, content);
+          fullText += chunk;
+          
+          // Parse status blocks
+          const statusMatch = fullText.match(/\[STATUS\]([\s\S]*?)\[\/STATUS\]/g);
+          if (statusMatch) {
+            // Get the last status block
+            currentStatus = statusMatch[statusMatch.length - 1].replace(/\[\/?STATUS\]/g, '').trim();
+          }
+          
+          // Clean content by removing ALL status blocks
+          const cleanContent = fullText.replace(/\[STATUS\][\s\S]*?\[\/STATUS\]/g, '').trimStart();
+          
+          // Temporarily display the status block at the top if it exists
+          const displayContent = currentStatus ? `> **⏳ ${currentStatus}**\n\n${cleanContent}` : cleanContent;
+          
+          updateNodeContent(node.id, displayContent);
         }
+        
+        // After stream is done, strip status one final time
+        const cleanContent = fullText.replace(/\[STATUS\][\s\S]*?\[\/STATUS\]/g, '').trimStart();
+        updateNodeContent(node.id, cleanContent);
       } catch (err: any) {
         if (err.name === 'AbortError' || err.message.includes('aborted')) {
           console.log('Generation aborted by user.');

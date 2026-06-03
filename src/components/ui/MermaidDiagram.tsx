@@ -35,6 +35,20 @@ export const MermaidDiagram: React.FC<MermaidProps> = ({ chart }) => {
         // Remove trailing backticks if any leaked
         cleanChart = cleanChart.replace(/```$/, '').trim();
 
+        // MERMAID SYNTAX FIX: Replace unquoted parentheses and brackets in node labels
+        // This regex looks for text inside brackets like A[Some (Text)] and removes the parentheses if they aren't quoted.
+        // It's a simplistic but effective way to prevent syntax errors.
+        // A better approach is to wrap the content of [ ] or ( ) in quotes if they contain spaces or special chars.
+        // Let's find patterns like A[text] or B(text) and ensure the text is quoted if it contains space, (, ), [, or ].
+        cleanChart = cleanChart.replace(/([A-Za-z0-9_]+)\[(.*?)\]/g, (match, id, content) => {
+          if (content.startsWith('"') && content.endsWith('"')) return match; // Already quoted
+          return `${id}["${content.replace(/"/g, "'")}"]`;
+        });
+        cleanChart = cleanChart.replace(/([A-Za-z0-9_]+)\((.*?)\)/g, (match, id, content) => {
+          if (content.startsWith('"') && content.endsWith('"')) return match; // Already quoted
+          return `${id}("${content.replace(/"/g, "'")}")`;
+        });
+
         const { svg: renderedSvg } = await mermaid.render(id, cleanChart);
         
         if (isMounted) {

@@ -73,8 +73,10 @@ Return ONLY a valid JSON object matching this structure: { "outline": [ ... ] }.
             // ---------------------------------------------------------
             // Agent 3: The Writer
             // ---------------------------------------------------------
-            // Agent 3: The Writer
-            // ---------------------------------------------------------
+            const googleApiKey = req.headers.get('X-Google-Key');
+            const googleCx = req.headers.get('X-Google-Cx');
+            const hasSearchConfig = !!(googleApiKey && googleCx);
+
             const writerSystem = `You are the Chief Writer for a textbook.
 CRITICAL REQUIREMENTS:
 1. Use extensive Markdown formatting (bolding, quotes, lists, tables).
@@ -85,37 +87,74 @@ CRITICAL REQUIREMENTS:
 6. Context of the full outline: ${JSON.stringify(currentOutline)}
 7. You are writing content for the node: "${prompt}".`;
 
-            const writerResult = await streamText({
-              model: openai.chat(modelName),
-              system: writerSystem,
-              prompt: `Write the full markdown content for the section: ${prompt}`,
-            });
-
             let fullDraft = '';
-            for await (const textPart of writerResult.textStream) {
-              fullDraft += textPart;
-              writeText(textPart);
-            }
 
-            // ---------------------------------------------------------
-            // Agent 4: The Critic (Runs in background, output hidden)
-            // ---------------------------------------------------------
-            const criticSystem = `You are a Senior Editor and Critic. 
-Review the provided textbook draft. 
-If it is excellent, just say "APPROVAL: This draft is excellent." and provide 1-2 minor suggestions.
-If it lacks depth, analogies, or clarity, provide a harsh but constructive critique.
-Be extremely concise.`;
+            if (!hasSearchConfig) {
+              // Standard streaming (No Fact Checking)
+              writeText('[STATUS]Agent 3: 👨‍💻 主笔正在撰写内容...[/STATUS]\n');
+              const writerResult = await streamText({
+                model: openai.chat(modelName),
+                system: writerSystem,
+                prompt: `Write the full markdown content for the section: ${prompt}`,
+              });
 
-            const criticResult = await streamText({
-              model: openai.chat(modelName),
-              system: criticSystem,
-              prompt: `Review this draft:\n\n${fullDraft}`,
-            });
+              for await (const textPart of writerResult.textStream) {
+                fullDraft += textPart;
+                writeText(textPart);
+              }
+            } else {
+              // Advanced Pipeline: Writer (Background) -> Fact Checker (Search + Stream)
+              writeText('[STATUS]Agent 3: 👨‍💻 主笔正在后台撰写初稿 (为确保案例真实，请稍候)...[/STATUS]\n');
+              
+              const writerResult = await generateText({
+                model: openai.chat(modelName),
+                system: writerSystem,
+                prompt: `Write the full markdown content for the section: ${prompt}`,
+              });
+              
+              fullDraft = writerResult.text;
 
-            let fullCritique = '';
-            for await (const textPart of criticResult.textStream) {
-              fullCritique += textPart;
-              // NOT writing to stream so it's hidden from user
+              writeText('[STATUS]Agent 4: 🔍 搜索智能体正在联网核查初稿中的案例...[/STATUS]\n');
+
+              const searchWeb = {
+                description: 'Search Google for factual verification of examples or claims.',
+                parameters: z.object({ query: z.string() }),
+                execute: async ({ query }: { query: string }) => {
+                  try {
+                    const res = await fetch(`https://www.googleapis.com/customsearch/v1?key=${googleApiKey}&cx=${googleCx}&q=${encodeURIComponent(query)}`);
+                    const data = await res.json();
+                    if (data.items && data.items.length > 0) {
+                      return data.items.slice(0, 3).map((item: any) => ({
+                        title: item.title,
+                        snippet: item.snippet,
+                      }));
+                    }
+                    return 'No search results found.';
+                  } catch (e: any) {
+                    return `Search failed: ${e.message}`;
+                  }
+                }
+              };
+
+              const factCheckerSystem = `You are a strict Fact Checker and Editor.
+You have been provided with a textbook draft. Your job is to verify any examples, anecdotes, or factual claims in the draft.
+If you find examples that seem fictional, hallucinated, or inaccurate, use the 'searchWeb' tool to find real-world examples to replace them.
+Rewrite the draft incorporating the factual examples. Preserve the original markdown formatting, mermaid diagrams, and LaTeX equations.
+Do NOT output any metadata or comments. Output ONLY the final, polished, and factual markdown text.`;
+
+              const factCheckerResult = await streamText({
+                model: openai.chat(modelName),
+                system: factCheckerSystem,
+                prompt: `Here is the draft. Verify it, modify it if necessary, and output the final version:\n\n${fullDraft}`,
+                tools: { searchWeb },
+                maxSteps: 3, // Allow the agent to search up to 2 times before answering
+              });
+
+              for await (const textPart of factCheckerResult.textStream) {
+                // Ensure we capture the final text for Assessor Agent
+                fullDraft += textPart; 
+                writeText(textPart);
+              }
             }
 
             // ---------------------------------------------------------
@@ -124,6 +163,7 @@ Be extremely concise.`;
             const enableQuizzes = req.headers.get('X-Enable-Quizzes') === 'true';
             
             if (enableQuizzes) {
+              writeText('[STATUS]Agent 5: 📝 测试专家正在生成随堂测验...[/STATUS]\n');
               writeText(`\n\n---\n\n`); // separator for quizzes
               
               const assessorSystem = `You are the Assessor Agent.
@@ -141,6 +181,8 @@ Format them nicely using Markdown blockquotes or bold text. Provide the answers 
               }
             }
 
+            // Final clear status instruction for frontend
+            writeText('[STATUS][/STATUS]');
             controller.close();
           } catch (err: any) {
             controller.error(err);

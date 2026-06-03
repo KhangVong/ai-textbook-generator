@@ -26,6 +26,8 @@ interface TextbookState {
   baseURL: string;
   modelName: string;
   enableQuizzes: boolean;
+  googleApiKey: string;
+  googleCx: string;
   status: AppStatus;
   
   // UI States
@@ -42,6 +44,8 @@ interface TextbookState {
   setBaseURL: (url: string) => void;
   setModelName: (model: string) => void;
   setEnableQuizzes: (enable: boolean) => void;
+  setGoogleApiKey: (key: string) => void;
+  setGoogleCx: (cx: string) => void;
   setOutline: (outline: OutlineNode[]) => void;
   setStatus: (status: AppStatus) => void;
   updateNodeContent: (id: string, content: string) => void;
@@ -105,6 +109,8 @@ export const useTextbookStore = create<TextbookState>()(
       apiKey: null,
       baseURL: 'https://api.openai.com/v1',
       modelName: 'gpt-4o',
+      googleApiKey: '',
+      googleCx: '',
       status: 'IDLE',
       currentView: 'READ',
       isEditMode: false,
@@ -120,6 +126,8 @@ export const useTextbookStore = create<TextbookState>()(
       setBaseURL: (url) => set({ baseURL: url }),
       setModelName: (model) => set({ modelName: model }),
       setEnableQuizzes: (enable) => set({ enableQuizzes: enable }),
+      setGoogleApiKey: (key) => set({ googleApiKey: key }),
+      setGoogleCx: (cx) => set({ googleCx: cx }),
       setOutline: (outline) => set({ outline }),
       setStatus: (status) => set({ status }),
       setCurrentView: (view) => set({ currentView: view }),
@@ -155,6 +163,8 @@ export const useTextbookStore = create<TextbookState>()(
         baseURL: state.baseURL,
         modelName: state.modelName,
         enableQuizzes: state.enableQuizzes,
+        googleApiKey: state.googleApiKey,
+        googleCx: state.googleCx,
         currentView: state.currentView,
       }),
     }

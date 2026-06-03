@@ -6,11 +6,13 @@ import { saveConfig, loadConfig, clearConfig } from '@/utils/storage';
 import { Settings2, Eye, EyeOff, Save, Trash2 } from 'lucide-react';
 
 export const ApiConfigBlock = () => {
-  const { apiKey, setApiKey, baseURL, setBaseURL, modelName, setModelName, enableQuizzes, setEnableQuizzes } = useTextbookStore();
+  const { apiKey, setApiKey, baseURL, setBaseURL, modelName, setModelName, enableQuizzes, setEnableQuizzes, googleApiKey, setGoogleApiKey, googleCx, setGoogleCx } = useTextbookStore();
   
   const [inputKey, setInputKey] = useState('');
   const [inputUrl, setInputUrl] = useState('');
   const [inputModel, setInputModel] = useState('');
+  const [inputGoogleKey, setInputGoogleKey] = useState('');
+  const [inputGoogleCx, setInputGoogleCx] = useState('');
   const [inputEnableQuizzes, setInputEnableQuizzes] = useState(true);
   const [showKey, setShowKey] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
@@ -30,14 +32,18 @@ export const ApiConfigBlock = () => {
     setInputKey(apiKey || '');
     setInputUrl(baseURL);
     setInputModel(modelName);
+    setInputGoogleKey(googleApiKey);
+    setInputGoogleCx(googleCx);
     setInputEnableQuizzes(enableQuizzes);
-  }, [apiKey, baseURL, modelName, enableQuizzes]);
+  }, [apiKey, baseURL, modelName, enableQuizzes, googleApiKey, googleCx]);
 
   const handleSave = () => {
     saveConfig(inputKey.trim(), inputUrl.trim(), inputModel.trim());
     setApiKey(inputKey.trim() || null);
     setBaseURL(inputUrl.trim());
     setModelName(inputModel.trim());
+    setGoogleApiKey(inputGoogleKey.trim());
+    setGoogleCx(inputGoogleCx.trim());
     setEnableQuizzes(inputEnableQuizzes);
     setIsSaved(true);
     setTimeout(() => setIsSaved(false), 2000);
@@ -47,6 +53,10 @@ export const ApiConfigBlock = () => {
     clearConfig();
     setApiKey(null);
     setInputKey('');
+    setGoogleApiKey('');
+    setGoogleCx('');
+    setInputGoogleKey('');
+    setInputGoogleCx('');
     setTestResult(null);
   };
 
@@ -142,7 +152,39 @@ export const ApiConfigBlock = () => {
           />
         </div>
 
-        <div className="flex items-center mt-2">
+        <div className="pt-4 mt-2 border-t border-border/50">
+          <h4 className="text-xs font-bold text-foreground mb-3 flex items-center">
+            Agent 4: Web Search Configuration (Optional)
+          </h4>
+          <p className="text-[10px] text-muted-foreground mb-3 leading-relaxed">
+            Provide a Google Custom Search API Key to allow the Search Agent to verify examples against the live web. <a href="https://developers.google.com/custom-search/v1/introduction" target="_blank" className="text-primary hover:underline">Get API Key & CX</a>
+          </p>
+          
+          <div className="space-y-3">
+            <div>
+              <label className="block text-[10px] font-medium text-muted-foreground mb-1">Google API Key</label>
+              <input 
+                type="password"
+                value={inputGoogleKey}
+                onChange={(e) => setInputGoogleKey(e.target.value)}
+                placeholder={googleApiKey ? '••••••••••••••••' : 'AIzaSy...'}
+                className="w-full px-3 py-1.5 text-xs bg-background text-foreground border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-zinc-500/50"
+              />
+            </div>
+            <div>
+              <label className="block text-[10px] font-medium text-muted-foreground mb-1">Search Engine ID (CX)</label>
+              <input 
+                type="text"
+                value={inputGoogleCx}
+                onChange={(e) => setInputGoogleCx(e.target.value)}
+                placeholder="e.g. 8f813..."
+                className="w-full px-3 py-1.5 text-xs bg-background text-foreground border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-zinc-500/50"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center mt-2 pt-2 border-t border-border/50">
           <input
             type="checkbox"
             id="enable-quizzes"
