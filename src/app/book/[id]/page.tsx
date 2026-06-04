@@ -3,6 +3,9 @@ import { supabase } from '@/lib/supabase';
 import { redirect, notFound } from 'next/navigation';
 import { WorkspaceClient } from './WorkspaceClient';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export default async function BookPage(props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
   const { userId } = await auth();

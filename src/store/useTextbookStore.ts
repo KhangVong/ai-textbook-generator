@@ -57,6 +57,7 @@ interface TextbookState {
   setIsEditMode: (isEdit: boolean) => void;
   setSelectedNodeId: (id: string | null) => void;
   setIsSettingsOpen: (open: boolean) => void;
+  clearStore: () => void;
 }
 
 // Helper to recursively find and update a node
@@ -134,6 +135,13 @@ export const useTextbookStore = create<TextbookState>()(
       setIsEditMode: (isEdit) => set({ isEditMode: isEdit }),
       setSelectedNodeId: (id) => set({ selectedNodeId: id }),
       setIsSettingsOpen: (open) => set({ isSettingsOpen: open }),
+      clearStore: () => set({
+        title: 'Untitled Textbook',
+        outline: [],
+        metadata: {},
+        status: 'IDLE',
+        activeProjectId: null,
+      }),
 
       updateNodeContent: (id, content) => set((state) => ({
         outline: updateNodeRecursive(state.outline, id, (node) => ({ ...node, content }))

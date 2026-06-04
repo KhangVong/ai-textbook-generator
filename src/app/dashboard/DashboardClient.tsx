@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { UserButton } from '@clerk/nextjs';
 import { BookOpen, Plus, Clock, FileText, Settings, X } from 'lucide-react';
 import { ApiConfigBlock } from '@/components/auth/ApiConfigBlock';
+import { useTextbookStore } from '@/store/useTextbookStore';
 
 interface DashboardClientProps {
   projects: any[] | null;
@@ -13,6 +14,12 @@ interface DashboardClientProps {
 
 export const DashboardClient: React.FC<DashboardClientProps> = ({ projects, error }) => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const clearStore = useTextbookStore((state) => state.clearStore);
+
+  useEffect(() => {
+    // Clear textbook store on dashboard mount to prevent cross-session or cross-project data leakage
+    clearStore();
+  }, [clearStore]);
 
   return (
     <div className="min-h-screen bg-background text-foreground flex h-screen w-screen overflow-hidden">

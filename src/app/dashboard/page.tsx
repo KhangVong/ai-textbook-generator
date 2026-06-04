@@ -3,6 +3,9 @@ import { supabase } from '@/lib/supabase';
 import { redirect } from 'next/navigation';
 import { DashboardClient } from './DashboardClient';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export default async function DashboardPage() {
   const { userId } = await auth();
   

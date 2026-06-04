@@ -35,12 +35,12 @@ export default async function LandingPage() {
         <div className="flex items-center space-x-4">
           {!userId ? (
             <>
-              <SignInButton mode="modal">
+              <SignInButton mode="modal" fallbackRedirectUrl="/dashboard" signUpFallbackRedirectUrl="/dashboard">
                 <button className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors px-4 py-2">
                   Sign In
                 </button>
               </SignInButton>
-              <SignInButton mode="modal">
+              <SignInButton mode="modal" fallbackRedirectUrl="/dashboard" signUpFallbackRedirectUrl="/dashboard">
                 <button className="text-sm bg-primary text-primary-foreground px-6 py-2.5 rounded-md font-medium hover:opacity-95 transition-all shadow-sm">
                   Get Started
                 </button>
@@ -74,7 +74,7 @@ export default async function LandingPage() {
 
         <div className="flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-4 mb-28">
           {!userId ? (
-            <SignInButton mode="modal" signUpFallbackRedirectUrl="/dashboard">
+            <SignInButton mode="modal" fallbackRedirectUrl="/dashboard" signUpFallbackRedirectUrl="/dashboard">
               <button className="w-full sm:w-auto flex items-center justify-center bg-primary text-primary-foreground px-8 py-3.5 rounded-md font-medium text-base hover:opacity-95 transition-all">
                 Start Generating
                 <ChevronRight className="w-4 h-4 ml-1.5" />
