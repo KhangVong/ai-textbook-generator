@@ -81,17 +81,10 @@ Return ONLY a valid JSON object matching this structure: { "outline": [ ... ] }.
 CRITICAL REQUIREMENTS:
 1. Use extensive Markdown formatting (bolding, quotes, lists, tables).
 2. Use LaTeX for ALL mathematical equations ($$ for block, $ for inline).
-3. Include flowcharts or diagrams where helpful using STRICT JSON inside \`\`\`json blocks.
-4. FLOWCHART RULES (CRITICAL):
-   - ONLY use flowcharts for single-direction algorithmic steps, state machines, or decision trees.
-   - NEVER use flowcharts for communication protocols (e.g., Alice/Bob), temporal sequence diagrams, or multi-lane workflows. For those, use Markdown tables or numbered lists.
-   - Output flowcharts exactly matching this JSON schema:
-     {
-       "type": "flowchart",
-       "nodes": [{ "id": "1", "label": "Step 1" }],
-       "edges": [{ "source": "1", "target": "2", "label": "Optional Edge Label" }]
-     }
-   - NEVER use \`\`\`mermaid. ONLY use \`\`\`json blocks.
+3. Include data charts where helpful using STRICT JSON inside \`\`\`chart blocks.
+4. DIAGRAM & PROCESS RULES (CRITICAL):
+   - NEVER use flowcharts, mermaid, or any JSON-based node/edge diagram tools.
+   - If you need to explain a process, state machine, communication protocol, or sequence, use ONLY beautifully formatted Markdown Tables or step-by-step numbered lists.
 5. DATA CHARTS (Recharts):
    - If you want to show statistical data (Line, Bar, Pie charts), use \`\`\`chart blocks.
    - Output strictly valid JSON matching this schema:
@@ -161,11 +154,10 @@ CRITICAL REQUIREMENTS:
               const factCheckerSystem = `You are a strict Fact Checker and Editor.
 You have been provided with a textbook draft. Your job is to verify any examples, anecdotes, or factual claims in the draft.
 If you find examples that seem fictional, hallucinated, or inaccurate, use the 'searchWeb' tool to find real-world examples to replace them.
-Rewrite the draft incorporating the factual examples. Preserve the original markdown formatting, JSON flowcharts, charts, and LaTeX equations.
-STRICT FLOWCHART & CHART RULES:
-- If you touch or generate flowcharts, you MUST use \`\`\`json blocks with the schema:
-  {"type": "flowchart", "nodes": [{"id":"1","label":"A"}], "edges": [{"source":"1","target":"2"}]}
-- NEVER use flowcharts for communication protocols or temporal sequence diagrams.
+Rewrite the draft incorporating the factual examples. Preserve the original markdown formatting, charts, and LaTeX equations.
+STRICT DIAGRAM & CHART RULES:
+- NEVER use flowcharts, mermaid, or JSON node/edge diagrams.
+- If you explain processes, use Markdown Tables or lists.
 - If you generate data charts, use \`\`\`chart blocks with JSON:
   {"type": "bar", "xAxisKey": "name", "series": [{"key":"val"}], "data": [{"name":"A","val":1}]}
 - NEVER use mermaid syntax.

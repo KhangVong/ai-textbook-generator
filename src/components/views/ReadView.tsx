@@ -282,19 +282,25 @@ export const ReadView = () => {
                       },
                       table({ children }) {
                         return (
-                          <div className="overflow-x-auto my-8 border border-border rounded-xl bg-card/40 scrollbar-thin">
-                            <table className="min-w-full divide-y divide-border text-sm">{children}</table>
+                          <div className="overflow-x-auto my-8 border shadow-sm border-border rounded-xl scrollbar-thin">
+                            <table className="min-w-full text-sm md:text-base border-collapse">{children}</table>
                           </div>
                         );
                       },
                       thead({ children }) {
-                        return <thead className="bg-secondary/20">{children}</thead>;
+                        return <thead className="bg-secondary/40 border-b-2 border-border">{children}</thead>;
+                      },
+                      tbody({ children }) {
+                        return <tbody className="divide-y divide-border">{children}</tbody>;
+                      },
+                      tr({ children }) {
+                        return <tr className="hover:bg-muted/30 transition-colors">{children}</tr>;
                       },
                       th({ children }) {
-                        return <th className="px-4 py-3 text-left font-medium text-xs tracking-wider text-muted-foreground uppercase">{children}</th>;
+                        return <th className="px-5 py-4 text-left font-semibold text-foreground tracking-wide">{children}</th>;
                       },
                       td({ children }) {
-                        return <td className="px-4 py-3 text-foreground/80 border-t border-border font-light">{children}</td>;
+                        return <td className="px-5 py-4 text-foreground/90 font-normal">{children}</td>;
                       },
                       blockquote({ children }) {
                         return (
