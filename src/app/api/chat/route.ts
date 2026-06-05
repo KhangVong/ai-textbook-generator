@@ -118,7 +118,6 @@ CRITICAL REQUIREMENTS:
                 model: openai.chat(modelName),
                 system: writerSystem,
                 prompt: `Write the full markdown content for the section: ${prompt}`,
-                maxTokens: 8192,
               });
 
               for await (const textPart of writerResult.textStream) {
@@ -133,7 +132,6 @@ CRITICAL REQUIREMENTS:
                 model: openai.chat(modelName),
                 system: writerSystem,
                 prompt: `Write the full markdown content for the section: ${prompt}`,
-                maxTokens: 8192,
               });
               
               fullDraft = writerResult.text;
@@ -180,7 +178,6 @@ Do NOT output any metadata or comments. Output ONLY the final, polished, and fac
                 prompt: `Here is the draft. Verify it, modify it if necessary, and output the final version:\n\n${fullDraft}`,
                 tools: { searchWeb: searchWeb as any },
                 maxSteps: 3, // Allow the agent to search up to 2 times before answering
-                maxTokens: 8192,
               } as any);
 
               for await (const textPart of factCheckerResult.textStream) {
