@@ -9,6 +9,7 @@ import remarkGfm from 'remark-gfm';
 import rehypeKatex from 'rehype-katex';
 import { Loader2, Play, Lock, Unlock, Edit3, Trash2, ZoomIn, ZoomOut, Settings, Plus, BookOpen } from 'lucide-react';
 import { MermaidDiagram } from '@/components/ui/MermaidDiagram';
+import { JsonFlowchart } from '@/components/ui/JsonFlowchart';
 
 export const ReadView = () => {
   const { outline, isEditMode, selectedNodeId, setSelectedNodeId, deleteNode, updateNodeTitle, setIsSettingsOpen } = useTextbookStore();
@@ -214,9 +215,25 @@ export const ReadView = () => {
                     components={{
                       code({ node, inline, className, children, ...props }: any) {
                         const match = /language-(\w+)/.exec(className || '');
+                        const contentString = String(children).replace(/\n$/, '');
+                        
+                        // Legacy support for mermaid
                         if (!inline && match && match[1] === 'mermaid') {
-                          return <MermaidDiagram chart={String(children).replace(/\n$/, '')} />;
+                          return <MermaidDiagram chart={contentString} />;
                         }
+                        
+                        // New robust JSON Flowchart support
+                        if (!inline && match && match[1] === 'json') {
+                          try {
+                            const parsed = JSON.parse(contentString);
+                            if (parsed && parsed.type === 'flowchart') {
+                              return <JsonFlowchart data={contentString} />;
+                            }
+                          } catch (e) {
+                            // Fall through to standard code block if JSON is invalid
+                          }
+                        }
+
                         return (
                           <code className="bg-secondary/40 border border-border px-1.5 py-0.5 rounded text-[0.9em] font-mono" {...props}>
                             {children}

@@ -81,12 +81,16 @@ Return ONLY a valid JSON object matching this structure: { "outline": [ ... ] }.
 CRITICAL REQUIREMENTS:
 1. Use extensive Markdown formatting (bolding, quotes, lists, tables).
 2. Use LaTeX for ALL mathematical equations ($$ for block, $ for inline).
-3. Include mermaid.js diagrams where helpful (\`\`\`mermaid ... \`\`\`).
-4. STRICT MERMAID SYNTAX RULES:
-   - Do NOT output version strings (e.g., no "mermaid version 11.15.0").
-   - EVERY node label MUST be enclosed in double quotes. Example: A["Start Process"] --> B["End (Process)"].
-   - Node IDs (the text before the bracket) MUST be simple alphanumeric strings without spaces or special characters (e.g., use Node1, NodeA, etc.).
-   - Ensure the diagram syntax is flawless. Do not hallucinate invalid node connections.
+3. Include flowcharts or diagrams where helpful using STRICT JSON inside \`\`\`json blocks.
+4. FLOWCHART JSON SCHEMA:
+   - Output flowcharts exactly matching this JSON schema:
+     {
+       "type": "flowchart",
+       "nodes": [{ "id": "1", "label": "Step 1" }],
+       "edges": [{ "source": "1", "target": "2", "label": "Optional Edge Label" }]
+     }
+   - NEVER use \`\`\`mermaid. ONLY use \`\`\`json blocks with the "type": "flowchart" property.
+   - Ensure the JSON is perfectly valid and nodes/edges correlate correctly.
 5. DO NOT start your content by repeating the section title as a heading (e.g. # Title). The title is already displayed in the UI. Start directly with the core content.
 6. Context of the full outline: ${JSON.stringify(currentOutline)}
 7. You are writing content for the node: "${prompt}".`;
@@ -143,12 +147,11 @@ CRITICAL REQUIREMENTS:
               const factCheckerSystem = `You are a strict Fact Checker and Editor.
 You have been provided with a textbook draft. Your job is to verify any examples, anecdotes, or factual claims in the draft.
 If you find examples that seem fictional, hallucinated, or inaccurate, use the 'searchWeb' tool to find real-world examples to replace them.
-Rewrite the draft incorporating the factual examples. Preserve the original markdown formatting, mermaid diagrams, and LaTeX equations.
-STRICT MERMAID SYNTAX RULES:
-- If you touch or generate mermaid diagrams, you must follow strict syntax.
-- Do NOT output version strings (e.g., no "mermaid version 11.15.0").
-- EVERY node label MUST be enclosed in double quotes. Example: A["Start Process"] --> B["End (Process)"].
-- Node IDs MUST be simple alphanumeric strings without spaces.
+Rewrite the draft incorporating the factual examples. Preserve the original markdown formatting, JSON flowcharts, and LaTeX equations.
+STRICT FLOWCHART RULES:
+- If you touch or generate flowcharts, you MUST use \`\`\`json blocks with the schema:
+  {"type": "flowchart", "nodes": [{"id":"1","label":"A"}], "edges": [{"source":"1","target":"2"}]}
+- NEVER use mermaid syntax.
 Do NOT output any metadata or comments. Output ONLY the final, polished, and factual markdown text.`;
 
               const factCheckerResult = await streamText({
