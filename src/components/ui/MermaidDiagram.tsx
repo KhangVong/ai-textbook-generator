@@ -27,27 +27,15 @@ export const MermaidDiagram: React.FC<MermaidProps> = ({ chart }) => {
         // Create a unique ID for the mermaid render
         const id = `mermaid-${Math.random().toString(36).substring(7)}`;
         
-        // Clean up common LLM hallucination errors in mermaid blocks
         let cleanChart = chart.trim();
-        if (cleanChart.toLowerCase().startsWith('mermaid')) {
-          cleanChart = cleanChart.substring(7).trim();
-        }
-        // Remove trailing backticks if any leaked
-        cleanChart = cleanChart.replace(/```$/, '').trim();
-
-        // MERMAID SYNTAX FIX: Replace unquoted parentheses and brackets in node labels
-        // This regex looks for text inside brackets like A[Some (Text)] and removes the parentheses if they aren't quoted.
-        // It's a simplistic but effective way to prevent syntax errors.
-        // A better approach is to wrap the content of [ ] or ( ) in quotes if they contain spaces or special chars.
-        // Let's find patterns like A[text] or B(text) and ensure the text is quoted if it contains space, (, ), [, or ].
-        cleanChart = cleanChart.replace(/([A-Za-z0-9_]+)\[(.*?)\]/g, (match, id, content) => {
-          if (content.startsWith('"') && content.endsWith('"')) return match; // Already quoted
-          return `${id}["${content.replace(/"/g, "'")}"]`;
+        
+        // Strip out common hallucinated starting lines like "mermaid" or "mermaid version x.x"
+        const lines = cleanChart.split('\n');
+        const validLines = lines.filter(line => {
+          const lower = line.trim().toLowerCase();
+          return !lower.startsWith('mermaid version') && lower !== 'mermaid' && !lower.startsWith('```');
         });
-        cleanChart = cleanChart.replace(/([A-Za-z0-9_]+)\((.*?)\)/g, (match, id, content) => {
-          if (content.startsWith('"') && content.endsWith('"')) return match; // Already quoted
-          return `${id}("${content.replace(/"/g, "'")}")`;
-        });
+        cleanChart = validLines.join('\n').trim();
 
         const { svg: renderedSvg } = await mermaid.render(id, cleanChart);
         
@@ -72,19 +60,30 @@ export const MermaidDiagram: React.FC<MermaidProps> = ({ chart }) => {
   }, [chart]);
 
   return (
-    <div className="my-8 w-full max-w-full overflow-x-auto bg-card border border-border rounded-xl p-4 shadow-sm">
+    <div className="my-8 w-full max-w-full bg-card border border-border rounded-xl shadow-sm overflow-hidden">
       {error ? (
-        <div className="text-red-500 text-sm font-mono whitespace-pre-wrap p-4 bg-red-500/10 rounded-md">
-          {error}
+        <div className="p-6">
+          <div className="flex items-center space-x-2 text-destructive mb-4">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+            <h4 className="font-semibold text-sm">Diagram Syntax Error</h4>
+          </div>
+          <p className="text-sm text-muted-foreground mb-4">
+            The AI generated an invalid flowchart. You can view the raw markup below.
+          </p>
+          <div className="bg-muted/50 rounded-md p-4 overflow-x-auto">
+            <pre className="text-xs font-mono text-foreground whitespace-pre-wrap">{chart}</pre>
+          </div>
         </div>
       ) : svg ? (
-        <div 
-          ref={containerRef} 
-          className="flex justify-center"
-          dangerouslySetInnerHTML={{ __html: svg }} 
-        />
+        <div className="p-4 overflow-x-auto">
+          <div 
+            ref={containerRef} 
+            className="flex justify-center min-w-[600px]"
+            dangerouslySetInnerHTML={{ __html: svg }} 
+          />
+        </div>
       ) : (
-        <div className="flex justify-center items-center py-8 text-muted-foreground animate-pulse">
+        <div className="flex justify-center items-center py-12 text-muted-foreground animate-pulse text-sm">
           Rendering Diagram...
         </div>
       )}
