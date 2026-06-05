@@ -63,8 +63,8 @@ const getLayoutedElements = (nodes: Node[], edges: Edge[], direction = 'TB') => 
 };
 
 export const JsonFlowchart: React.FC<JsonFlowchartProps> = ({ data }) => {
-  const [nodes, setNodes, onNodesChange] = useNodesState([]);
-  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+  const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
