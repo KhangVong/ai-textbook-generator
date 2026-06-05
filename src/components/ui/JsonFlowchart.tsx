@@ -25,9 +25,6 @@ interface JsonFlowchartProps {
   data: string;
 }
 
-const nodeWidth = 180;
-const nodeHeight = 50;
-
 const getLayoutedElements = (nodes: Node[], edges: Edge[], direction = 'TB') => {
   const dagreGraph = new dagre.graphlib.Graph();
   dagreGraph.setDefaultEdgeLabel(() => ({}));
@@ -35,7 +32,14 @@ const getLayoutedElements = (nodes: Node[], edges: Edge[], direction = 'TB') => 
   dagreGraph.setGraph({ rankdir: direction });
 
   nodes.forEach((node) => {
-    dagreGraph.setNode(node.id, { width: nodeWidth, height: nodeHeight });
+    const label = (node.data.label as string) || '';
+    const lines = label.split('\n').length;
+    const longestLine = Math.max(...label.split('\n').map(l => l.length));
+    
+    const w = Math.max(150, Math.min(250, longestLine * 8 + 20));
+    const h = Math.max(50, lines * 20 + 20);
+
+    dagreGraph.setNode(node.id, { width: w, height: h });
   });
 
   edges.forEach((edge) => {
@@ -49,11 +53,15 @@ const getLayoutedElements = (nodes: Node[], edges: Edge[], direction = 'TB') => 
     node.targetPosition = direction === 'LR' ? Position.Left : Position.Top;
     node.sourcePosition = direction === 'LR' ? Position.Right : Position.Bottom;
 
-    // We are shifting the dagre node position (anchor=center center) to the top left
-    // so it matches the React Flow node anchor point (top left).
     node.position = {
-      x: nodeWithPosition.x - nodeWidth / 2,
-      y: nodeWithPosition.y - nodeHeight / 2,
+      x: nodeWithPosition.x - nodeWithPosition.width / 2,
+      y: nodeWithPosition.y - nodeWithPosition.height / 2,
+    };
+
+    node.style = {
+      ...node.style,
+      width: nodeWithPosition.width,
+      height: nodeWithPosition.height,
     };
 
     return node;
@@ -90,6 +98,10 @@ export const JsonFlowchart: React.FC<JsonFlowchartProps> = ({ data }) => {
           boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
           minWidth: '150px',
           textAlign: 'center',
+          whiteSpace: 'pre-wrap',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
         },
       }));
 

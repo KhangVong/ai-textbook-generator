@@ -82,15 +82,16 @@ CRITICAL REQUIREMENTS:
 1. Use extensive Markdown formatting (bolding, quotes, lists, tables).
 2. Use LaTeX for ALL mathematical equations ($$ for block, $ for inline).
 3. Include flowcharts or diagrams where helpful using STRICT JSON inside \`\`\`json blocks.
-4. FLOWCHART JSON SCHEMA:
+4. FLOWCHART RULES (CRITICAL):
+   - ONLY use flowcharts for single-direction algorithmic steps, state machines, or decision trees.
+   - NEVER use flowcharts for communication protocols (e.g., Alice/Bob), temporal sequence diagrams, or multi-lane workflows. For those, use Markdown tables or numbered lists.
    - Output flowcharts exactly matching this JSON schema:
      {
        "type": "flowchart",
        "nodes": [{ "id": "1", "label": "Step 1" }],
        "edges": [{ "source": "1", "target": "2", "label": "Optional Edge Label" }]
      }
-   - NEVER use \`\`\`mermaid. ONLY use \`\`\`json blocks with the "type": "flowchart" property.
-   - Ensure the JSON is perfectly valid and nodes/edges correlate correctly.
+   - NEVER use \`\`\`mermaid. ONLY use \`\`\`json blocks.
 5. DATA CHARTS (Recharts):
    - If you want to show statistical data (Line, Bar, Pie charts), use \`\`\`chart blocks.
    - Output strictly valid JSON matching this schema:
@@ -101,9 +102,12 @@ CRITICAL REQUIREMENTS:
        "series": [{ "key": "value1", "name": "Metric 1", "color": "#8b5cf6" }],
        "data": [{ "name": "Jan", "value1": 400 }]
      }
-5. DO NOT start your content by repeating the section title as a heading (e.g. # Title). The title is already displayed in the UI. Start directly with the core content.
-6. Context of the full outline: ${JSON.stringify(currentOutline)}
-7. You are writing content for the node: "${prompt}".`;
+6. MARKDOWN FORMATTING RULES (CRITICAL):
+   - NEVER use spaces or indentation to create headers (e.g. "   Chapter 1").
+   - ALL section headers MUST begin with Markdown header symbols (e.g., "## Chapter 1", "### Sub-section").
+   - DO NOT start your content by repeating the section title as a heading. Start directly with the core content.
+7. Context of the full outline: ${JSON.stringify(currentOutline)}
+8. You are writing content for the node: "${prompt}".`;
 
             let fullDraft = '';
 
@@ -114,6 +118,7 @@ CRITICAL REQUIREMENTS:
                 model: openai.chat(modelName),
                 system: writerSystem,
                 prompt: `Write the full markdown content for the section: ${prompt}`,
+                maxTokens: 8192,
               });
 
               for await (const textPart of writerResult.textStream) {
@@ -128,6 +133,7 @@ CRITICAL REQUIREMENTS:
                 model: openai.chat(modelName),
                 system: writerSystem,
                 prompt: `Write the full markdown content for the section: ${prompt}`,
+                maxTokens: 8192,
               });
               
               fullDraft = writerResult.text;
@@ -161,9 +167,11 @@ Rewrite the draft incorporating the factual examples. Preserve the original mark
 STRICT FLOWCHART & CHART RULES:
 - If you touch or generate flowcharts, you MUST use \`\`\`json blocks with the schema:
   {"type": "flowchart", "nodes": [{"id":"1","label":"A"}], "edges": [{"source":"1","target":"2"}]}
+- NEVER use flowcharts for communication protocols or temporal sequence diagrams.
 - If you generate data charts, use \`\`\`chart blocks with JSON:
   {"type": "bar", "xAxisKey": "name", "series": [{"key":"val"}], "data": [{"name":"A","val":1}]}
 - NEVER use mermaid syntax.
+- ALL section headers MUST use Markdown header symbols (#, ##). Do NOT use spaces for headers.
 Do NOT output any metadata or comments. Output ONLY the final, polished, and factual markdown text.`;
 
               const factCheckerResult = await streamText({
@@ -172,6 +180,7 @@ Do NOT output any metadata or comments. Output ONLY the final, polished, and fac
                 prompt: `Here is the draft. Verify it, modify it if necessary, and output the final version:\n\n${fullDraft}`,
                 tools: { searchWeb: searchWeb as any },
                 maxSteps: 3, // Allow the agent to search up to 2 times before answering
+                maxTokens: 8192,
               } as any);
 
               for await (const textPart of factCheckerResult.textStream) {
