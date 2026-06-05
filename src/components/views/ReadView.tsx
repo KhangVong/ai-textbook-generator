@@ -7,9 +7,15 @@ import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
 import remarkGfm from 'remark-gfm';
 import rehypeKatex from 'rehype-katex';
+import rehypeSanitize from 'rehype-sanitize';
 import { Loader2, Play, Lock, Unlock, Edit3, Trash2, ZoomIn, ZoomOut, Settings, Plus, BookOpen } from 'lucide-react';
 import { MermaidDiagram } from '@/components/ui/MermaidDiagram';
 import { JsonFlowchart } from '@/components/ui/JsonFlowchart';
+import { JsonChart } from '@/components/ui/JsonChart';
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { vscDarkPlus } from 'react-syntax-highlighter/dist/cjs/styles/prism';
+
+import 'katex/dist/katex.min.css';
 
 export const ReadView = () => {
   const { outline, isEditMode, selectedNodeId, setSelectedNodeId, deleteNode, updateNodeTitle, setIsSettingsOpen } = useTextbookStore();
@@ -211,7 +217,7 @@ export const ReadView = () => {
                 >
                   <ReactMarkdown 
                     remarkPlugins={[remarkMath, remarkGfm]} 
-                    rehypePlugins={[rehypeKatex]}
+                    rehypePlugins={[rehypeKatex, rehypeSanitize]}
                     components={{
                       code({ node, inline, className, children, ...props }: any) {
                         const match = /language-(\w+)/.exec(className || '');
@@ -234,14 +240,27 @@ export const ReadView = () => {
                           }
                         }
 
+                        // Robust Data Charts
+                        if (!inline && match && match[1] === 'chart') {
+                          return <JsonChart data={contentString} />;
+                        }
+
                         return (
-                          <code className="bg-secondary/40 border border-border px-1.5 py-0.5 rounded text-[0.9em] font-mono" {...props}>
-                            {children}
-                          </code>
+                          <div className="my-6 rounded-md overflow-hidden bg-secondary/10 border border-border">
+                            <SyntaxHighlighter
+                              style={vscDarkPlus}
+                              language={match ? match[1] : 'text'}
+                              PreTag="div"
+                              customStyle={{ margin: 0, padding: '1rem', fontSize: '0.875rem' }}
+                              {...props}
+                            >
+                              {contentString}
+                            </SyntaxHighlighter>
+                          </div>
                         );
                       },
                       p({ children }) {
-                        return <p className="mb-6 leading-relaxed text-sm md:text-base font-light text-foreground/80">{children}</p>;
+                        return <p className="mb-6 leading-loose text-sm md:text-base font-light text-foreground/80">{children}</p>;
                       },
                       h1({ children }) {
                         return <h2 className="text-2xl font-serif font-normal tracking-tight mt-12 mb-6 text-foreground">{children}</h2>;
@@ -253,17 +272,17 @@ export const ReadView = () => {
                         return <h4 className="text-lg font-sans font-medium tracking-tight mt-6 mb-3 text-foreground">{children}</h4>;
                       },
                       ul({ children }) {
-                        return <ul className="list-disc pl-6 mb-6 space-y-2 text-sm md:text-base font-light text-foreground/80">{children}</ul>;
+                        return <ul className="list-disc pl-6 mb-6 space-y-2 text-sm md:text-base font-light text-foreground/80 leading-loose">{children}</ul>;
                       },
                       ol({ children }) {
-                        return <ol className="list-decimal pl-6 mb-6 space-y-2 text-sm md:text-base font-light text-foreground/80">{children}</ol>;
+                        return <ol className="list-decimal pl-6 mb-6 space-y-2 text-sm md:text-base font-light text-foreground/80 leading-loose">{children}</ol>;
                       },
                       li({ children }) {
-                        return <li className="pl-1 leading-relaxed">{children}</li>;
+                        return <li className="pl-1 leading-loose">{children}</li>;
                       },
                       table({ children }) {
                         return (
-                          <div className="overflow-x-auto my-8 border border-border rounded-xl bg-card/40">
+                          <div className="overflow-x-auto my-8 border border-border rounded-xl bg-card/40 scrollbar-thin">
                             <table className="min-w-full divide-y divide-border text-sm">{children}</table>
                           </div>
                         );
@@ -279,7 +298,7 @@ export const ReadView = () => {
                       },
                       blockquote({ children }) {
                         return (
-                          <blockquote className="border-l-2 border-primary pl-6 italic my-8 text-muted-foreground text-sm font-serif">
+                          <blockquote className="border-l-4 border-primary/60 bg-primary/5 px-6 py-4 rounded-r-lg italic my-8 text-foreground/90 text-sm font-serif">
                             {children}
                           </blockquote>
                         );

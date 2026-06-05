@@ -66,6 +66,13 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+.katex-display {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 0.5rem;
+  scrollbar-width: thin;
+}
+
 /* Premium utility classes */
 @layer utilities {
   .glassmorphism {

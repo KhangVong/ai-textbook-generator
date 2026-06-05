@@ -91,6 +91,16 @@ CRITICAL REQUIREMENTS:
      }
    - NEVER use \`\`\`mermaid. ONLY use \`\`\`json blocks with the "type": "flowchart" property.
    - Ensure the JSON is perfectly valid and nodes/edges correlate correctly.
+5. DATA CHARTS (Recharts):
+   - If you want to show statistical data (Line, Bar, Pie charts), use \`\`\`chart blocks.
+   - Output strictly valid JSON matching this schema:
+     {
+       "type": "line" | "bar" | "pie",
+       "title": "Optional Chart Title",
+       "xAxisKey": "name",
+       "series": [{ "key": "value1", "name": "Metric 1", "color": "#8b5cf6" }],
+       "data": [{ "name": "Jan", "value1": 400 }]
+     }
 5. DO NOT start your content by repeating the section title as a heading (e.g. # Title). The title is already displayed in the UI. Start directly with the core content.
 6. Context of the full outline: ${JSON.stringify(currentOutline)}
 7. You are writing content for the node: "${prompt}".`;
@@ -147,10 +157,12 @@ CRITICAL REQUIREMENTS:
               const factCheckerSystem = `You are a strict Fact Checker and Editor.
 You have been provided with a textbook draft. Your job is to verify any examples, anecdotes, or factual claims in the draft.
 If you find examples that seem fictional, hallucinated, or inaccurate, use the 'searchWeb' tool to find real-world examples to replace them.
-Rewrite the draft incorporating the factual examples. Preserve the original markdown formatting, JSON flowcharts, and LaTeX equations.
-STRICT FLOWCHART RULES:
+Rewrite the draft incorporating the factual examples. Preserve the original markdown formatting, JSON flowcharts, charts, and LaTeX equations.
+STRICT FLOWCHART & CHART RULES:
 - If you touch or generate flowcharts, you MUST use \`\`\`json blocks with the schema:
   {"type": "flowchart", "nodes": [{"id":"1","label":"A"}], "edges": [{"source":"1","target":"2"}]}
+- If you generate data charts, use \`\`\`chart blocks with JSON:
+  {"type": "bar", "xAxisKey": "name", "series": [{"key":"val"}], "data": [{"name":"A","val":1}]}
 - NEVER use mermaid syntax.
 Do NOT output any metadata or comments. Output ONLY the final, polished, and factual markdown text.`;
 
