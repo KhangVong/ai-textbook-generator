@@ -78,54 +78,22 @@ Choose from these expert types:
 - 'matplotlib': For generating a python matplotlib chart to visualize data or concepts.
 - 'diagram': For generating a mermaid.js flowchart or state machine.`;
 
-            const planResult = await generateText({
+            const planResult = await generateObject({
               model: openai.chat(modelName),
               system: routerSystem,
-              prompt: `Topic to break down: "${prompt}"\n\nOutline context: ${JSON.stringify(currentOutline)}\n\nCRITICAL: You MUST call the 'submit_plan' function/tool to provide the breakdown. Do not output plain text.`,
-              // @ts-ignore: bypass buggy types in ai sdk 3.x
-              tools: {
-                submit_plan: {
-                  description: 'Submit the breakdown of tasks for the experts.',
-                  parameters: {
-                    type: "object",
-                    properties: {
-                      tasks: {
-                        type: "array",
-                        items: {
-                          type: "object",
-                          properties: {
-                            agentType: { type: "string", enum: ["prose", "math", "matplotlib", "diagram"] },
-                            instruction: { type: "string", description: "Highly specific instruction for the expert." }
-                          },
-                          required: ["agentType", "instruction"]
-                        }
-                      }
-                    },
-                    required: ["tasks"]
-                  }
-                } as any
-              },
-              // removed toolChoice: 'required' as it might crash DeepSeek's OpenAI compatibility layer
+              prompt: `Topic to break down: "${prompt}"\n\nOutline context: ${JSON.stringify(currentOutline)}\n\nCRITICAL: You MUST output a valid JSON object. Do not output plain text.`,
+              schema: z.object({
+                tasks: z.array(z.object({
+                  agentType: z.enum(['prose', 'math', 'matplotlib', 'diagram']),
+                  instruction: z.string().describe('Highly specific instruction for the expert.')
+                }))
+              }),
+              mode: 'json',
             });
-
-            const toolCall = planResult.toolCalls?.find(t => t.toolName === 'submit_plan');
-            if (!toolCall) {
-              throw new Error("Model did not return the required tool call for plan generation.");
-            }
             
-            let plan: any = (toolCall as any).args || (toolCall as any).arguments || (toolCall as any).parameters;
+            const plan = planResult.object;
             
-            if (typeof plan === 'string') {
-              try {
-                plan = JSON.parse(plan);
-              } catch (e) {
-                throw new Error("Failed to parse tool call arguments as JSON: " + plan);
-              }
-            }
-            
-            if (!plan || !plan.tasks) {
-              throw new Error("Tool call returned an invalid format. Missing tasks array.");
-            }
+            // plan is now perfectly typed and guaranteed to be an object by generateObject
 
             // 2. Iterate and Dispatch (Map-Reduce execution)
             for (let i = 0; i < plan.tasks.length; i++) {
