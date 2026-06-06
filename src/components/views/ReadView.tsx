@@ -7,7 +7,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
 import remarkGfm from 'remark-gfm';
 import rehypeKatex from 'rehype-katex';
-import rehypeSanitize from 'rehype-sanitize';
+
 import { Loader2, Play, Lock, Unlock, Edit3, Trash2, ZoomIn, ZoomOut, Settings, Plus, BookOpen } from 'lucide-react';
 import { MermaidDiagram } from '@/components/ui/MermaidDiagram';
 import { JsonFlowchart } from '@/components/ui/JsonFlowchart';
@@ -218,7 +218,7 @@ export const ReadView = () => {
                 >
                   <ReactMarkdown 
                     remarkPlugins={[remarkMath, remarkGfm]} 
-                    rehypePlugins={[rehypeKatex, rehypeSanitize]}
+                    rehypePlugins={[rehypeKatex]}
                     components={{
                       code({ node, inline, className, children, ...props }: any) {
                         const match = /language-(\w+)/.exec(className || '');
