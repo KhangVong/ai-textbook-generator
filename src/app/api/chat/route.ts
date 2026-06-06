@@ -1,5 +1,5 @@
 import { createOpenAI } from '@ai-sdk/openai';
-import { streamText, generateObject, generateText, tool } from 'ai';
+import { streamText, generateObject, generateText } from 'ai';
 import { z } from 'zod';
 import { NextResponse } from 'next/server';
 
@@ -82,9 +82,8 @@ Choose from these expert types:
               model: openai.chat(modelName),
               system: routerSystem,
               prompt: `Topic to break down: "${prompt}"\n\nOutline context: ${JSON.stringify(currentOutline)}`,
-              // @ts-ignore: bypass buggy types in ai sdk 3.x
               tools: {
-                submit_plan: tool({
+                submit_plan: {
                   description: 'Submit the breakdown of tasks for the experts.',
                   parameters: z.object({
                     tasks: z.array(z.object({
@@ -92,7 +91,7 @@ Choose from these expert types:
                       instruction: z.string().describe('Highly specific instruction for the expert.')
                     }))
                   })
-                })
+                } as any
               },
               toolChoice: 'required',
             });
