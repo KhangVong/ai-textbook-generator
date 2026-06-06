@@ -81,7 +81,7 @@ Choose from these expert types:
             const planResult = await generateText({
               model: openai.chat(modelName),
               system: routerSystem,
-              prompt: `Topic to break down: "${prompt}"\n\nOutline context: ${JSON.stringify(currentOutline)}`,
+              prompt: `Topic to break down: "${prompt}"\n\nOutline context: ${JSON.stringify(currentOutline)}\n\nCRITICAL: You MUST call the 'submit_plan' function/tool to provide the breakdown. Do not output plain text.`,
               tools: {
                 submit_plan: {
                   description: 'Submit the breakdown of tasks for the experts.',
@@ -93,7 +93,7 @@ Choose from these expert types:
                   })
                 } as any
               },
-              toolChoice: 'required',
+              // removed toolChoice: 'required' as it might crash DeepSeek's OpenAI compatibility layer
             });
 
             const toolCall = planResult.toolCalls?.find(t => t.toolName === 'submit_plan');
@@ -178,7 +178,9 @@ No other explanation text allowed.`;
             controller.close();
           } catch (err: any) {
             console.error("Agent Pipeline Error:", err);
-            controller.error(err);
+            writeText(`\n\n> ❌ **AGENT PIPELINE ERROR:** ${err.message || String(err)}\n\n`);
+            writeText('[STATUS][/STATUS]');
+            controller.close();
           }
         }
       });
