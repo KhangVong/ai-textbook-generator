@@ -12,6 +12,7 @@ import { Loader2, Play, Lock, Unlock, Edit3, Trash2, ZoomIn, ZoomOut, Settings, 
 import { MermaidDiagram } from '@/components/ui/MermaidDiagram';
 import { JsonFlowchart } from '@/components/ui/JsonFlowchart';
 import { JsonChart } from '@/components/ui/JsonChart';
+import { PythonChart } from '@/components/ui/PythonChart';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/cjs/styles/prism';
 
@@ -243,6 +244,11 @@ export const ReadView = () => {
                         // Robust Data Charts
                         if (!inline && match && match[1] === 'chart') {
                           return <JsonChart data={contentString} />;
+                        }
+
+                        // Python Matplotlib Sandboxing
+                        if (!inline && match && match[1] === 'python-chart') {
+                          return <PythonChart code={contentString} />;
                         }
 
                         return (

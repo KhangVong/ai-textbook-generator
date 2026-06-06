@@ -58,154 +58,110 @@ Return ONLY a valid JSON object matching this structure: { "outline": [ ... ] }.
     } 
     
     if (type === 'generate_content') {
-      // Instead of returning a single stream, we create a custom ReadableStream 
-      // that chains multiple Agent streams together.
       const encoder = new TextEncoder();
       
       const stream = new ReadableStream({
         async start(controller) {
           try {
-            // Helper to write raw text to the stream
             const writeText = (text: string) => {
               controller.enqueue(encoder.encode(text));
             };
 
-            // ---------------------------------------------------------
-            // Agent 3: The Writer
-            // ---------------------------------------------------------
-            const googleApiKey = req.headers.get('X-Google-Key');
-            const googleCx = req.headers.get('X-Google-Cx');
-            const hasSearchConfig = !!(googleApiKey && googleCx);
+            // 1. Router Agent
+            writeText('[STATUS]👑 主理人正在拆解子任务...[/STATUS]\n');
+            const routerSystem = `You are the Manager/Router Agent for a textbook generator.
+Your job is to break down the topic into a sequence of 3 to 6 logical sub-modules.
+You do NOT write the content yourself. You delegate to specialists.
+Choose from these expert types:
+- 'prose': For writing text, introductions, explanations, or transitions.
+- 'math': For rigorous mathematical definitions, theorems, or LaTeX proofs.
+- 'matplotlib': For generating a python matplotlib chart to visualize data or concepts.
+- 'diagram': For generating a mermaid.js flowchart or state machine.
+Return a JSON sequence of tasks.`;
 
-            const writerSystem = `You are the Chief Writer for a textbook.
-CRITICAL REQUIREMENTS:
-1. Use extensive Markdown formatting (bolding, quotes, lists, tables).
-2. Use LaTeX for ALL mathematical equations ($$ for block, $ for inline).
-3. Include data charts and diagrams where helpful to explain complex concepts.
-4. DIAGRAM & PROCESS RULES (CRITICAL):
-   - Use Mermaid.js for all flowcharts, state machines, communication protocols, or sequence diagrams.
-   - Output mermaid code strictly inside \`\`\`mermaid blocks.
-   - Keep mermaid syntax simple and standard to avoid syntax errors. Do NOT use unsupported plugins.
-5. DATA CHARTS (Recharts):
-   - If you want to show statistical data (Line, Bar, Pie charts), use \`\`\`chart blocks.
-   - Output strictly valid JSON matching this schema:
-     {
-       "type": "line" | "bar" | "pie",
-       "title": "Optional Chart Title",
-       "xAxisKey": "name",
-       "series": [{ "key": "value1", "name": "Metric 1", "color": "#8b5cf6" }],
-       "data": [{ "name": "Jan", "value1": 400 }]
-     }
-6. MARKDOWN FORMATTING RULES (CRITICAL):
-   - NEVER use spaces or indentation to create headers (e.g. "   Chapter 1").
-   - ALL section headers MUST begin with Markdown header symbols (e.g., "## Chapter 1", "### Sub-section").
-   - DO NOT start your content by repeating the section title as a heading. Start directly with the core content.
-7. Context of the full outline: ${JSON.stringify(currentOutline)}
-8. You are writing content for the node: "${prompt}".`;
+            const { object: plan } = await generateObject({
+              model: openai.chat(modelName),
+              system: routerSystem,
+              prompt: `Topic to break down: "${prompt}"\n\nOutline context: ${JSON.stringify(currentOutline)}`,
+              schema: z.object({
+                tasks: z.array(z.object({
+                  agentType: z.enum(['prose', 'math', 'matplotlib', 'diagram']),
+                  instruction: z.string().describe('Highly specific instruction for the expert.'),
+                }))
+              })
+            });
 
-            let fullDraft = '';
-
-            if (!hasSearchConfig) {
-              // Standard streaming (No Fact Checking)
-              writeText('[STATUS]Agent 3: 👨‍💻 主笔正在撰写内容...[/STATUS]\n');
-              const writerResult = await streamText({
-                model: openai.chat(modelName),
-                system: writerSystem,
-                prompt: `Write the full markdown content for the section: ${prompt}`,
-              });
-
-              for await (const textPart of writerResult.textStream) {
-                fullDraft += textPart;
-                writeText(textPart);
+            // 2. Iterate and Dispatch (Map-Reduce execution)
+            for (let i = 0; i < plan.tasks.length; i++) {
+              const task = plan.tasks[i];
+              
+              if (task.agentType === 'prose') {
+                writeText('[STATUS]✍️ 散文写作专家正在撰写段落...[/STATUS]\n');
+                const proseSystem = `You are the Prose Writer Agent. 
+Write beautiful, engaging textbook paragraphs based on the instruction.
+DO NOT use complex LaTeX block math, and DO NOT write code or mermaid. Use standard markdown formatting.
+Start directly with the content, no meta-commentary.`;
+                const result = await streamText({
+                  model: openai.chat(modelName),
+                  system: proseSystem,
+                  prompt: task.instruction,
+                });
+                for await (const textPart of result.textStream) { writeText(textPart); }
+                writeText('\n\n');
+              } 
+              else if (task.agentType === 'math') {
+                writeText('[STATUS]🧮 数学推导专家正在严谨排版...[/STATUS]\n');
+                const mathSystem = `You are the Math Expert Agent.
+Write strictly accurate mathematical definitions, proofs, and equations.
+Use LaTeX for all math ($$ for blocks, $ for inline). 
+CRITICAL: Never output mixed repetitive symbols like "a,b∈Za, b \\in \\mathbb{Z}a,b∈Z". Use clean, singular LaTeX.
+Start directly with the content, no meta-commentary.`;
+                const result = await streamText({
+                  model: openai.chat(modelName),
+                  system: mathSystem,
+                  prompt: task.instruction,
+                  temperature: 0.1, // low temp for math precision
+                });
+                for await (const textPart of result.textStream) { writeText(textPart); }
+                writeText('\n\n');
               }
-            } else {
-              // Advanced Pipeline: Writer (Background) -> Fact Checker (Search + Stream)
-              writeText('[STATUS]Agent 3: 👨‍💻 主笔正在后台撰写初稿 (为确保案例真实，请稍候)...[/STATUS]\n');
-              
-              const writerResult = await generateText({
-                model: openai.chat(modelName),
-                system: writerSystem,
-                prompt: `Write the full markdown content for the section: ${prompt}`,
-              });
-              
-              fullDraft = writerResult.text;
-
-              writeText('[STATUS]Agent 4: 🔍 搜索智能体正在联网核查初稿中的案例...[/STATUS]\n');
-
-              const searchWeb: any = {
-                description: 'Search Google for factual verification of examples or claims.',
-                parameters: z.object({ query: z.string() }),
-                execute: async ({ query }: { query: string }) => {
-                  try {
-                    const res = await fetch(`https://www.googleapis.com/customsearch/v1?key=${googleApiKey}&cx=${googleCx}&q=${encodeURIComponent(query)}`);
-                    const data = await res.json();
-                    if (data.items && data.items.length > 0) {
-                      return data.items.slice(0, 3).map((item: any) => ({
-                        title: item.title,
-                        snippet: item.snippet,
-                      }));
-                    }
-                    return 'No search results found.';
-                  } catch (e: any) {
-                    return `Search failed: ${e.message}`;
-                  }
-                }
-              };
-
-              const factCheckerSystem = `You are a strict Fact Checker and Editor.
-You have been provided with a textbook draft. Your job is to verify any examples, anecdotes, or factual claims in the draft.
-If you find examples that seem fictional, hallucinated, or inaccurate, use the 'searchWeb' tool to find real-world examples to replace them.
-Rewrite the draft incorporating the factual examples. Preserve the original markdown formatting, charts, mermaid diagrams, and LaTeX equations.
-STRICT DIAGRAM & CHART RULES:
-- If you explain processes or flowcharts, use \`\`\`mermaid blocks. Keep mermaid syntax standard.
-- If you generate data charts, use \`\`\`chart blocks with JSON:
-  {"type": "bar", "xAxisKey": "name", "series": [{"key":"val"}], "data": [{"name":"A","val":1}]}
-- ALL section headers MUST use Markdown header symbols (#, ##). Do NOT use spaces for headers.
-Do NOT output any metadata or comments. Output ONLY the final, polished, and factual markdown text.`;
-
-              const factCheckerResult = await streamText({
-                model: openai.chat(modelName),
-                system: factCheckerSystem,
-                prompt: `Here is the draft. Verify it, modify it if necessary, and output the final version:\n\n${fullDraft}`,
-                tools: { searchWeb: searchWeb as any },
-                maxSteps: 3, // Allow the agent to search up to 2 times before answering
-              } as any);
-
-              for await (const textPart of factCheckerResult.textStream) {
-                // Ensure we capture the final text for Assessor Agent
-                fullDraft += textPart; 
-                writeText(textPart);
+              else if (task.agentType === 'matplotlib') {
+                writeText('[STATUS]📊 可视化专家正在编写 Python 图表脚本...[/STATUS]\n');
+                const chartSystem = `You are the Matplotlib Charting Agent.
+Write a COMPLETE Python script using matplotlib to visualize the given concept.
+The output MUST be strictly wrapped in a \`\`\`python-chart block.
+Do not use plt.show(). Do not include your own base64 encoding script. Just write standard matplotlib code (e.g., plt.plot(), plt.title(), etc.) and the sandbox will handle the rest.
+No other explanation text allowed.`;
+                const result = await streamText({
+                  model: openai.chat(modelName),
+                  system: chartSystem,
+                  prompt: task.instruction,
+                  temperature: 0.1,
+                });
+                for await (const textPart of result.textStream) { writeText(textPart); }
+                writeText('\n\n');
+              }
+              else if (task.agentType === 'diagram') {
+                writeText('[STATUS]🗺️ 拓扑绘图专家正在构建 Mermaid...[/STATUS]\n');
+                const diagramSystem = `You are the Diagram Agent.
+Write a valid Mermaid.js diagram based on the instruction.
+The output MUST be strictly wrapped in a \`\`\`mermaid block.
+No other explanation text allowed.`;
+                const result = await streamText({
+                  model: openai.chat(modelName),
+                  system: diagramSystem,
+                  prompt: task.instruction,
+                  temperature: 0.1,
+                });
+                for await (const textPart of result.textStream) { writeText(textPart); }
+                writeText('\n\n');
               }
             }
 
-            // ---------------------------------------------------------
-            // Agent 5: The Assessor (Optional)
-            // ---------------------------------------------------------
-            const enableQuizzes = req.headers.get('X-Enable-Quizzes') === 'true';
-            
-            if (enableQuizzes) {
-              writeText('[STATUS]Agent 5: 📝 测试专家正在生成随堂测验...[/STATUS]\n');
-              writeText(`\n\n---\n\n`); // separator for quizzes
-              
-              const assessorSystem = `You are the Assessor Agent.
-Based on the draft, generate 3 multiple-choice or short-answer questions to test the reader's knowledge.
-Format them nicely using Markdown blockquotes or bold text. Provide the answers at the very end in a collapsible detail block if possible, or just clearly separated.`;
-
-              const assessorResult = await streamText({
-                model: openai.chat(modelName),
-                system: assessorSystem,
-                prompt: `Draft:\n\n${fullDraft}\n\nGenerate the Knowledge Check now.`,
-              });
-
-              for await (const textPart of assessorResult.textStream) {
-                writeText(textPart);
-              }
-            }
-
-            // Final clear status instruction for frontend
             writeText('[STATUS][/STATUS]');
             controller.close();
           } catch (err: any) {
+            console.error("Agent Pipeline Error:", err);
             controller.error(err);
           }
         }
