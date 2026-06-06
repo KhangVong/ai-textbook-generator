@@ -82,16 +82,28 @@ Choose from these expert types:
               model: openai.chat(modelName),
               system: routerSystem,
               prompt: `Topic to break down: "${prompt}"\n\nOutline context: ${JSON.stringify(currentOutline)}\n\nCRITICAL: You MUST call the 'submit_plan' function/tool to provide the breakdown. Do not output plain text.`,
+              // @ts-ignore: bypass buggy types in ai sdk 3.x
               tools: {
-                submit_plan: (tool as any)({
+                submit_plan: {
                   description: 'Submit the breakdown of tasks for the experts.',
-                  parameters: z.object({
-                    tasks: z.array(z.object({
-                      agentType: z.enum(['prose', 'math', 'matplotlib', 'diagram']),
-                      instruction: z.string().describe('Highly specific instruction for the expert.')
-                    }))
-                  })
-                })
+                  parameters: {
+                    type: "object",
+                    properties: {
+                      tasks: {
+                        type: "array",
+                        items: {
+                          type: "object",
+                          properties: {
+                            agentType: { type: "string", enum: ["prose", "math", "matplotlib", "diagram"] },
+                            instruction: { type: "string", description: "Highly specific instruction for the expert." }
+                          },
+                          required: ["agentType", "instruction"]
+                        }
+                      }
+                    },
+                    required: ["tasks"]
+                  }
+                } as any
               },
               // removed toolChoice: 'required' as it might crash DeepSeek's OpenAI compatibility layer
             });
@@ -101,7 +113,15 @@ Choose from these expert types:
               throw new Error("Model did not return the required tool call for plan generation.");
             }
             
-            const plan: any = (toolCall as any).args || (toolCall as any).arguments || (toolCall as any).parameters;
+            let plan: any = (toolCall as any).args || (toolCall as any).arguments || (toolCall as any).parameters;
+            
+            if (typeof plan === 'string') {
+              try {
+                plan = JSON.parse(plan);
+              } catch (e) {
+                throw new Error("Failed to parse tool call arguments as JSON: " + plan);
+              }
+            }
             
             if (!plan || !plan.tasks) {
               throw new Error("Tool call returned an invalid format. Missing tasks array.");
