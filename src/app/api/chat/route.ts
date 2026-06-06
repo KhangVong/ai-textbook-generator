@@ -89,7 +89,7 @@ CRITICAL: You MUST output a valid JSON object with a single root key "tasks", wh
         prompt: task.instruction,
         temperature: 0.1,
       });
-      return new Response(result.textStream);
+      return result.toTextStreamResponse();
     }
 
     return NextResponse.json({ error: 'Invalid operation type' }, { status: 400 });
