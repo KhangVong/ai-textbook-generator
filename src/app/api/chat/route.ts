@@ -78,19 +78,30 @@ Choose from these expert types:
 - 'matplotlib': For generating a python matplotlib chart to visualize data or concepts.
 - 'diagram': For generating a mermaid.js flowchart or state machine.`;
 
-            const { object: plan } = await generateObject({
+            const planResult = await generateText({
               model: openai.chat(modelName),
-              // @ts-ignore: Bypass type check as mode 'tool' is supported by runtime for DeepSeek
-              mode: 'tool', // Trick the model into using function calling for strict JSON output
               system: routerSystem,
               prompt: `Topic to break down: "${prompt}"\n\nOutline context: ${JSON.stringify(currentOutline)}`,
-              schema: z.object({
-                tasks: z.array(z.object({
-                  agentType: z.enum(['prose', 'math', 'matplotlib', 'diagram']),
-                  instruction: z.string().describe('Highly specific instruction for the expert.'),
-                }))
-              })
+              tools: {
+                submit_plan: {
+                  description: 'Submit the breakdown of tasks for the experts.',
+                  parameters: z.object({
+                    tasks: z.array(z.object({
+                      agentType: z.enum(['prose', 'math', 'matplotlib', 'diagram']),
+                      instruction: z.string().describe('Highly specific instruction for the expert.')
+                    }))
+                  })
+                }
+              },
+              toolChoice: 'required',
             });
+
+            const toolCall = planResult.toolCalls?.find(t => t.toolName === 'submit_plan');
+            if (!toolCall) {
+              throw new Error("Model did not return the required tool call for plan generation.");
+            }
+            
+            const plan = toolCall.args;
 
             // 2. Iterate and Dispatch (Map-Reduce execution)
             for (let i = 0; i < plan.tasks.length; i++) {
