@@ -62,10 +62,10 @@ Return ONLY a valid JSON object matching this structure: { "outline": [ ... ] }.
       
       const stream = new ReadableStream({
         async start(controller) {
+          const writeText = (text: string) => {
+            controller.enqueue(encoder.encode(text));
+          };
           try {
-            const writeText = (text: string) => {
-              controller.enqueue(encoder.encode(text));
-            };
 
             // 1. Router Agent
             writeText('[STATUS]👑 主理人正在拆解子任务...[/STATUS]\n');
