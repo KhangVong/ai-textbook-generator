@@ -80,6 +80,7 @@ Choose from these expert types:
 
             const { object: plan } = await generateObject({
               model: openai.chat(modelName),
+              // @ts-ignore: Bypass type check as mode 'tool' is supported by runtime for DeepSeek
               mode: 'tool', // Trick the model into using function calling for strict JSON output
               system: routerSystem,
               prompt: `Topic to break down: "${prompt}"\n\nOutline context: ${JSON.stringify(currentOutline)}`,
