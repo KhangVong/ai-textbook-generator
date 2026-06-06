@@ -82,6 +82,7 @@ Choose from these expert types:
               model: openai.chat(modelName),
               system: routerSystem,
               prompt: `Topic to break down: "${prompt}"\n\nOutline context: ${JSON.stringify(currentOutline)}`,
+              // @ts-ignore: bypass buggy types in ai sdk 3.x
               tools: {
                 submit_plan: tool({
                   description: 'Submit the breakdown of tasks for the experts.',
