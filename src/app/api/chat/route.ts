@@ -3,11 +3,8 @@ import { ChatOpenAI } from '@langchain/openai';
 import { StateGraph, END, START, Annotation } from '@langchain/langgraph';
 import { streamText } from 'ai'; // Keep it for generate_outline if we want, but actually we can just use langchain for everything.
 
-// We will keep 'generate_outline' using the ai sdk for simplicity or switch to langchain?
-// Let's keep `streamText` from `ai` for `generate_outline` because the frontend expects a normal text stream there.
-// For `generate_content`, we use LangGraph yielding NDJSON.
-
-export const runtime = 'edge';
+// Use Node.js serverless runtime with maximum 60s duration to support heavy LangGraph operations
+export const maxDuration = 60;
 
 // Define the state for LangGraph
 const AgentState = Annotation.Root({
@@ -66,6 +63,7 @@ async function proseNode(state: typeof AgentState.State, config: any) {
     modelName: config.configurable.modelName,
     configuration: { baseURL: config.configurable.baseURL },
     apiKey: config.configurable.apiKey,
+    streaming: true,
   });
   const task = state.plan[state.currentTaskIndex];
   const res = await llm.invoke([
@@ -80,6 +78,7 @@ async function mathNode(state: typeof AgentState.State, config: any) {
     modelName: config.configurable.modelName,
     configuration: { baseURL: config.configurable.baseURL },
     apiKey: config.configurable.apiKey,
+    streaming: true,
     temperature: 0.1
   });
   const task = state.plan[state.currentTaskIndex];
@@ -95,6 +94,7 @@ async function matplotlibNode(state: typeof AgentState.State, config: any) {
     modelName: config.configurable.modelName,
     configuration: { baseURL: config.configurable.baseURL },
     apiKey: config.configurable.apiKey,
+    streaming: true,
     temperature: 0.1
   });
   const task = state.plan[state.currentTaskIndex];
@@ -110,6 +110,7 @@ async function diagramNode(state: typeof AgentState.State, config: any) {
     modelName: config.configurable.modelName,
     configuration: { baseURL: config.configurable.baseURL },
     apiKey: config.configurable.apiKey,
+    streaming: true,
     temperature: 0.1
   });
   const task = state.plan[state.currentTaskIndex];
