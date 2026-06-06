@@ -91,38 +91,49 @@ export const useGenerationEngine = () => {
 
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
+        let buffer = '';
         let fullText = '';
         let currentStatus = '';
 
         while (true) {
           if (abortControllerRef.current?.signal.aborted) {
-            break; // Stop reading if aborted
+            break;
           }
           const { done, value } = await reader.read();
           if (done) break;
           
-          const chunk = decoder.decode(value, { stream: true });
-          fullText += chunk;
+          const chunkStr = decoder.decode(value, { stream: true });
+          buffer += chunkStr;
           
-          // Parse status blocks
-          const statusMatch = fullText.match(/\[STATUS\]([\s\S]*?)\[\/STATUS\]/g);
-          if (statusMatch) {
-            // Get the last status block
-            currentStatus = statusMatch[statusMatch.length - 1].replace(/\[\/?STATUS\]/g, '').trim();
+          const lines = buffer.split('\\n');
+          buffer = lines.pop() || ''; // Keep the last partial line in the buffer
+          
+          for (const line of lines) {
+            if (!line.trim()) continue;
+            try {
+              const event = JSON.parse(line);
+              
+              if (event.type === 'status') {
+                currentStatus = event.data;
+              } else if (event.type === 'chunk') {
+                fullText += event.data;
+              } else if (event.type === 'error') {
+                throw new Error(event.data);
+              } else if (event.type === 'done') {
+                currentStatus = '';
+              }
+              
+              const displayContent = currentStatus ? `> **⏳ ${currentStatus}**\\n\\n${fullText}` : fullText;
+              updateNodeContent(node.id, displayContent);
+            } catch (e: any) {
+              // Ignore parse errors from partial lines or non-json if streaming splits mid-JSON
+              // Wait, NDJSON from our server guarantees newline separation. If split mid-chunk, we might need a buffer.
+            }
           }
-          
-          // Clean content by removing ALL status blocks
-          const cleanContent = fullText.replace(/\[STATUS\][\s\S]*?\[\/STATUS\]/g, '').trimStart();
-          
-          // Temporarily display the status block at the top if it exists
-          const displayContent = currentStatus ? `> **⏳ ${currentStatus}**\n\n${cleanContent}` : cleanContent;
-          
-          updateNodeContent(node.id, displayContent);
         }
         
-        // After stream is done, strip status one final time
-        const cleanContent = fullText.replace(/\[STATUS\][\s\S]*?\[\/STATUS\]/g, '').trimStart();
-        updateNodeContent(node.id, cleanContent);
+        // After stream is done, clean
+        updateNodeContent(node.id, fullText);
       } catch (err: any) {
         if (err.name === 'AbortError' || err.message.includes('aborted')) {
           console.log('Generation aborted by user.');
