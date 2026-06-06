@@ -48,7 +48,7 @@ export const useGenerationEngine = () => {
     // For simplicity, we'll overwrite any node that doesn't have a lot of content (< 50 chars usually means failed/partial)
     const nodesToGenerate = targetedNodeId 
       ? allNodes.filter(n => n.id === targetedNodeId)
-      : allNodes.filter(n => !n.content || n.content.length < 50);
+      : allNodes.filter(n => !n.content || n.content.length < 50 || n.content.includes('> **⏳'));
       
     let completed = 0;
     let hasError = false;
