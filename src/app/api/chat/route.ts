@@ -101,7 +101,11 @@ Choose from these expert types:
               throw new Error("Model did not return the required tool call for plan generation.");
             }
             
-            const plan = toolCall.args;
+            const plan: any = (toolCall as any).args || (toolCall as any).arguments || (toolCall as any).parameters;
+            
+            if (!plan || !plan.tasks) {
+              throw new Error("Tool call returned an invalid format. Missing tasks array.");
+            }
 
             // 2. Iterate and Dispatch (Map-Reduce execution)
             for (let i = 0; i < plan.tasks.length; i++) {
