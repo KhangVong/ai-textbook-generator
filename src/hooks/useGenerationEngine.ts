@@ -105,7 +105,7 @@ export const useGenerationEngine = () => {
           const chunkStr = decoder.decode(value, { stream: true });
           buffer += chunkStr;
           
-          const lines = buffer.split('\\n');
+          const lines = buffer.split('\n');
           buffer = lines.pop() || ''; // Keep the last partial line in the buffer
           
           for (const line of lines) {

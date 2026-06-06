@@ -64,6 +64,7 @@ async function proseNode(state: typeof AgentState.State, config: any) {
     configuration: { baseURL: config.configurable.baseURL },
     apiKey: config.configurable.apiKey,
     streaming: true,
+    tags: ["worker"]
   });
   const task = state.plan[state.currentTaskIndex];
   const res = await llm.invoke([
@@ -79,7 +80,8 @@ async function mathNode(state: typeof AgentState.State, config: any) {
     configuration: { baseURL: config.configurable.baseURL },
     apiKey: config.configurable.apiKey,
     streaming: true,
-    temperature: 0.1
+    temperature: 0.1,
+    tags: ["worker"]
   });
   const task = state.plan[state.currentTaskIndex];
   const res = await llm.invoke([
@@ -95,7 +97,8 @@ async function matplotlibNode(state: typeof AgentState.State, config: any) {
     configuration: { baseURL: config.configurable.baseURL },
     apiKey: config.configurable.apiKey,
     streaming: true,
-    temperature: 0.1
+    temperature: 0.1,
+    tags: ["worker"]
   });
   const task = state.plan[state.currentTaskIndex];
   const res = await llm.invoke([
@@ -111,7 +114,8 @@ async function diagramNode(state: typeof AgentState.State, config: any) {
     configuration: { baseURL: config.configurable.baseURL },
     apiKey: config.configurable.apiKey,
     streaming: true,
-    temperature: 0.1
+    temperature: 0.1,
+    tags: ["worker"]
   });
   const task = state.plan[state.currentTaskIndex];
   const res = await llm.invoke([
@@ -202,7 +206,7 @@ Return ONLY a valid JSON object matching this structure: { "outline": [ ... ] }.
         async start(controller) {
           const encoder = new TextEncoder();
           const send = (data: any) => {
-            controller.enqueue(encoder.encode(JSON.stringify(data) + "\\n"));
+            controller.enqueue(encoder.encode(JSON.stringify(data) + "\n"));
           };
 
           try {
@@ -215,16 +219,18 @@ Return ONLY a valid JSON object matching this structure: { "outline": [ ... ] }.
                 if (event.name === "diagramNode") send({ type: "status", data: "🗺️ 拓扑绘图专家正在构建 Mermaid..." });
               } 
               else if (event.event === "on_chat_model_stream") {
-                // event.data.chunk is an AIMessageChunk
-                const chunkContent = event.data?.chunk?.content;
-                if (chunkContent) {
-                  send({ type: "chunk", data: chunkContent });
+                if (event.tags && event.tags.includes("worker")) {
+                  // event.data.chunk is an AIMessageChunk
+                  const chunkContent = event.data?.chunk?.content;
+                  if (chunkContent) {
+                    send({ type: "chunk", data: chunkContent });
+                  }
                 }
               }
               else if (event.event === "on_chain_end") {
                 // We inject a double newline after each expert finishes
                 if (["proseNode", "mathNode", "matplotlibNode", "diagramNode"].includes(event.name)) {
-                  send({ type: "chunk", data: "\\n\\n" });
+                  send({ type: "chunk", data: "\n\n" });
                 }
               }
             }
