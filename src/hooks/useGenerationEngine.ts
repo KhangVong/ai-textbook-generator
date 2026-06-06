@@ -73,7 +73,7 @@ export const useGenerationEngine = () => {
         // Step 1: Route
         updateNodeContent(node.id, `> **⏳ 👑 主理人正在拆解子任务...**\\n\\n`);
         let routerRes;
-        let routerData;
+        let routerText = '';
         let routerRetries = 2;
         while (routerRetries >= 0) {
           routerRes = await fetch('/api/chat', {
@@ -88,7 +88,16 @@ export const useGenerationEngine = () => {
           });
 
           if (routerRes.ok) {
-            routerData = await routerRes.json();
+            if (!routerRes.body) throw new Error('No body returned from router');
+            const reader = routerRes.body.getReader();
+            const decoder = new TextDecoder();
+            while (true) {
+              if (abortControllerRef.current?.signal.aborted) break;
+              const { done, value } = await reader.read();
+              if (done) break;
+              routerText += decoder.decode(value, { stream: true });
+              updateNodeContent(node.id, `> **⏳ 👑 主理人正在拆解子任务...**\\n\\n\`\`\`json\\n${routerText}\\n\`\`\``);
+            }
             break;
           }
           
@@ -98,6 +107,15 @@ export const useGenerationEngine = () => {
           }
           routerRetries--;
           await new Promise(r => setTimeout(r, 2000));
+        }
+        
+        let routerData;
+        try {
+          const jsonMatch = routerText.match(/\{[\s\S]*\}/);
+          const textToParse = jsonMatch ? jsonMatch[0] : routerText.replace(/```json/g, '').replace(/```/g, '').trim();
+          routerData = JSON.parse(textToParse);
+        } catch (e) {
+          throw new Error("Router failed to output valid JSON: " + routerText);
         }
         const tasks = routerData.tasks || [];
 

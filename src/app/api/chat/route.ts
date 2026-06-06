@@ -47,7 +47,7 @@ Return ONLY a valid JSON object matching this structure: { "outline": [ ... ] }.
     } 
     
     if (type === 'router') {
-      const result = await generateText({
+      const result = await streamText({
         model: openai.chat(modelName),
         system: `You are the Manager/Router Agent for a textbook generator.
 Your job is to break down the topic into a sequence of 3 to 6 logical sub-modules.
@@ -61,15 +61,7 @@ CRITICAL: You MUST output a valid JSON object with a single root key "tasks", wh
         temperature: 0.1,
       });
 
-      let planObj;
-      try {
-        const jsonMatch = result.text.match(/\{[\s\S]*\}/);
-        const text = jsonMatch ? jsonMatch[0] : result.text.replace(/```json/g, '').replace(/```/g, '').trim();
-        planObj = JSON.parse(text);
-      } catch (e) {
-        throw new Error("Router failed to output valid JSON: " + result.text);
-      }
-      return NextResponse.json(planObj);
+      return result.toTextStreamResponse();
     }
 
     if (type === 'expert') {
