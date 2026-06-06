@@ -63,7 +63,8 @@ CRITICAL: You MUST output a valid JSON object with a single root key "tasks", wh
 
       let planObj;
       try {
-        const text = result.text.replace(/```json/g, '').replace(/```/g, '').trim();
+        const jsonMatch = result.text.match(/\{[\s\S]*\}/);
+        const text = jsonMatch ? jsonMatch[0] : result.text.replace(/```json/g, '').replace(/```/g, '').trim();
         planObj = JSON.parse(text);
       } catch (e) {
         throw new Error("Router failed to output valid JSON: " + result.text);

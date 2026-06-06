@@ -72,19 +72,33 @@ export const useGenerationEngine = () => {
 
         // Step 1: Route
         updateNodeContent(node.id, `> **⏳ 👑 主理人正在拆解子任务...**\\n\\n`);
-        const routerRes = await fetch('/api/chat', {
-          method: 'POST',
-          headers: baseHeaders,
-          body: JSON.stringify({
-            type: 'router',
-            prompt: node.title,
-            currentOutline: outline,
-          }),
-          signal: abortControllerRef.current.signal
-        });
+        let routerRes;
+        let routerData;
+        let routerRetries = 2;
+        while (routerRetries >= 0) {
+          routerRes = await fetch('/api/chat', {
+            method: 'POST',
+            headers: baseHeaders,
+            body: JSON.stringify({
+              type: 'router',
+              prompt: node.title,
+              currentOutline: outline,
+            }),
+            signal: abortControllerRef.current.signal
+          });
 
-        if (!routerRes.ok) throw new Error("Router failed to fetch");
-        const routerData = await routerRes.json();
+          if (routerRes.ok) {
+            routerData = await routerRes.json();
+            break;
+          }
+          
+          if (routerRetries === 0) {
+            const errText = await routerRes.text();
+            throw new Error(`Router failed to fetch: ${routerRes.status} ${errText}`);
+          }
+          routerRetries--;
+          await new Promise(r => setTimeout(r, 2000));
+        }
         const tasks = routerData.tasks || [];
 
         // Step 2: Execute Experts sequentially
