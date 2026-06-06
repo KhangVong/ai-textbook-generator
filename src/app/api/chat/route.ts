@@ -3,8 +3,8 @@ import { ChatOpenAI } from '@langchain/openai';
 import { StateGraph, END, START, Annotation } from '@langchain/langgraph';
 import { streamText } from 'ai'; // Keep it for generate_outline if we want, but actually we can just use langchain for everything.
 
-// Use Node.js serverless runtime with maximum 60s duration to support heavy LangGraph operations
-export const maxDuration = 60;
+// Use Edge runtime to bypass the strict 60s Serverless execution limit. Since we now use streaming: true, it will keep the connection alive indefinitely.
+export const runtime = 'edge';
 
 // Define the state for LangGraph
 const AgentState = Annotation.Root({
