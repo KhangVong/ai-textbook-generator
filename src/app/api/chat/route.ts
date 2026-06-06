@@ -81,10 +81,11 @@ Return ONLY a valid JSON object matching this structure: { "outline": [ ... ] }.
 CRITICAL REQUIREMENTS:
 1. Use extensive Markdown formatting (bolding, quotes, lists, tables).
 2. Use LaTeX for ALL mathematical equations ($$ for block, $ for inline).
-3. Include data charts where helpful using STRICT JSON inside \`\`\`chart blocks.
+3. Include data charts and diagrams where helpful to explain complex concepts.
 4. DIAGRAM & PROCESS RULES (CRITICAL):
-   - NEVER use flowcharts, mermaid, or any JSON-based node/edge diagram tools.
-   - If you need to explain a process, state machine, communication protocol, or sequence, use ONLY beautifully formatted Markdown Tables or step-by-step numbered lists.
+   - Use Mermaid.js for all flowcharts, state machines, communication protocols, or sequence diagrams.
+   - Output mermaid code strictly inside \`\`\`mermaid blocks.
+   - Keep mermaid syntax simple and standard to avoid syntax errors. Do NOT use unsupported plugins.
 5. DATA CHARTS (Recharts):
    - If you want to show statistical data (Line, Bar, Pie charts), use \`\`\`chart blocks.
    - Output strictly valid JSON matching this schema:
@@ -154,13 +155,11 @@ CRITICAL REQUIREMENTS:
               const factCheckerSystem = `You are a strict Fact Checker and Editor.
 You have been provided with a textbook draft. Your job is to verify any examples, anecdotes, or factual claims in the draft.
 If you find examples that seem fictional, hallucinated, or inaccurate, use the 'searchWeb' tool to find real-world examples to replace them.
-Rewrite the draft incorporating the factual examples. Preserve the original markdown formatting, charts, and LaTeX equations.
+Rewrite the draft incorporating the factual examples. Preserve the original markdown formatting, charts, mermaid diagrams, and LaTeX equations.
 STRICT DIAGRAM & CHART RULES:
-- NEVER use flowcharts, mermaid, or JSON node/edge diagrams.
-- If you explain processes, use Markdown Tables or lists.
+- If you explain processes or flowcharts, use \`\`\`mermaid blocks. Keep mermaid syntax standard.
 - If you generate data charts, use \`\`\`chart blocks with JSON:
   {"type": "bar", "xAxisKey": "name", "series": [{"key":"val"}], "data": [{"name":"A","val":1}]}
-- NEVER use mermaid syntax.
 - ALL section headers MUST use Markdown header symbols (#, ##). Do NOT use spaces for headers.
 Do NOT output any metadata or comments. Output ONLY the final, polished, and factual markdown text.`;
 
