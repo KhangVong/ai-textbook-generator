@@ -88,7 +88,6 @@ Choose from these expert types:
                   instruction: z.string().describe('Highly specific instruction for the expert.')
                 }))
               }),
-              mode: 'json',
             });
             
             const plan = planResult.object;
