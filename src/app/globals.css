@@ -73,6 +73,11 @@ body {
   scrollbar-width: thin;
 }
 
+/* Fallback to ensure MathML is never visible if CDN fails to load */
+.katex-mathml {
+  display: none !important;
+}
+
 /* Premium utility classes */
 @layer utilities {
   .glassmorphism {

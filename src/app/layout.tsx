@@ -11,8 +11,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "AI Textbook Generator",
-  description: "Generate structured textbooks from any prompt.",
+  title: "Antigravity Textbook Engine",
+  description: "AI-Powered Textbooks with Interactive Learning",
 };
 
 export default function RootLayout({
@@ -26,6 +26,14 @@ export default function RootLayout({
         lang="en"
         className={`${inter.variable} h-full antialiased suppressHydrationWarning`}
       >
+        <head>
+          <link 
+            rel="stylesheet" 
+            href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" 
+            integrity="sha384-n8MVd4RsNIU0tAv4ct0nTaAbDJwPJzDEaqO1bDfUqQzZ/OzhGz8i6D/uy1z1X0K8" 
+            crossOrigin="anonymous" 
+          />
+        </head>
         <body className="min-h-full flex flex-col">{children}</body>
       </html>
     </ClerkProvider>
