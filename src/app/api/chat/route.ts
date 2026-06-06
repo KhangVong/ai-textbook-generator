@@ -76,42 +76,20 @@ Choose from these expert types:
 - 'prose': For writing text, introductions, explanations, or transitions.
 - 'math': For rigorous mathematical definitions, theorems, or LaTeX proofs.
 - 'matplotlib': For generating a python matplotlib chart to visualize data or concepts.
-- 'diagram': For generating a mermaid.js flowchart or state machine.
+- 'diagram': For generating a mermaid.js flowchart or state machine.`;
 
-Return ONLY a valid JSON object exactly matching this structure, with no markdown code blocks, backticks, or extra text:
-{
-  "tasks": [
-    {
-      "agentType": "prose",
-      "instruction": "Highly specific instruction for the expert."
-    }
-  ]
-}`;
-
-            const planResult = await generateText({
+            const { object: plan } = await generateObject({
               model: openai.chat(modelName),
+              mode: 'tool', // Trick the model into using function calling for strict JSON output
               system: routerSystem,
-              prompt: `Topic to break down: "${prompt}"\n\nOutline context: ${JSON.stringify(currentOutline)}`
+              prompt: `Topic to break down: "${prompt}"\n\nOutline context: ${JSON.stringify(currentOutline)}`,
+              schema: z.object({
+                tasks: z.array(z.object({
+                  agentType: z.enum(['prose', 'math', 'matplotlib', 'diagram']),
+                  instruction: z.string().describe('Highly specific instruction for the expert.'),
+                }))
+              })
             });
-
-            let planText = planResult.text.trim();
-            if (planText.startsWith('\`\`\`json')) planText = planText.replace(/^\`\`\`json\n?/, '').replace(/\n?\`\`\`$/, '');
-            else if (planText.startsWith('\`\`\`')) planText = planText.replace(/^\`\`\`\n?/, '').replace(/\n?\`\`\`$/, '');
-
-            let plan: { tasks: { agentType: string, instruction: string }[] };
-            try {
-              plan = JSON.parse(planText);
-              if (!plan.tasks || !Array.isArray(plan.tasks)) throw new Error("Invalid schema");
-            } catch (e) {
-              console.error("Failed to parse plan JSON:", planText);
-              // Fallback plan if JSON fails
-              plan = {
-                tasks: [
-                  { agentType: 'prose', instruction: `Write a clear and engaging overview for the section: ${prompt}` },
-                  { agentType: 'math', instruction: `Provide any relevant mathematical definitions or rigor for: ${prompt}` }
-                ]
-              };
-            }
 
             // 2. Iterate and Dispatch (Map-Reduce execution)
             for (let i = 0; i < plan.tasks.length; i++) {
