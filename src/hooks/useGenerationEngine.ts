@@ -40,12 +40,9 @@ export const useGenerationEngine = () => {
     setIsGenerating(true);
     setStatus('GENERATING_CHAPTERS');
     
-    // Setup abort controller for this run
     abortControllerRef.current = new AbortController();
     
     const allNodes = flattenNodes(outline);
-    // Only generate nodes that are empty or were partially generated (we could clear them first, or just overwrite).
-    // For simplicity, we'll overwrite any node that doesn't have a lot of content (< 50 chars usually means failed/partial)
     const nodesToGenerate = targetedNodeId 
       ? allNodes.filter(n => n.id === targetedNodeId)
       : allNodes.filter(n => !n.content || n.content.length < 50 || n.content.includes('> **⏳'));
@@ -55,94 +52,93 @@ export const useGenerationEngine = () => {
 
     for (const node of nodesToGenerate) {
       if (abortControllerRef.current?.signal.aborted) {
-        break; // Stop the loop if aborted
+        break;
       }
       
-      // Clear existing content before generating to show it's starting fresh
       updateNodeContent(node.id, '');
+      let fullText = '';
 
       try {
         const { enableQuizzes, googleApiKey, googleCx } = useTextbookStore.getState();
-        const response = await fetch('/api/chat', {
+        const baseHeaders = {
+          'Content-Type': 'application/json',
+          'X-OpenAI-Key': apiKey || '',
+          'X-Base-URL': baseURL,
+          'X-Model-Name': modelName,
+          'X-Enable-Quizzes': enableQuizzes ? 'true' : 'false',
+          'X-Google-Key': googleApiKey || '',
+          'X-Google-Cx': googleCx || '',
+        };
+
+        // Step 1: Route
+        updateNodeContent(node.id, `> **⏳ 👑 主理人正在拆解子任务...**\\n\\n`);
+        const routerRes = await fetch('/api/chat', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-OpenAI-Key': apiKey || '',
-            'X-Base-URL': baseURL,
-            'X-Model-Name': modelName,
-            'X-Enable-Quizzes': enableQuizzes ? 'true' : 'false',
-            'X-Google-Key': googleApiKey || '',
-            'X-Google-Cx': googleCx || '',
-          },
+          headers: baseHeaders,
           body: JSON.stringify({
-            type: 'generate_content',
+            type: 'router',
             prompt: node.title,
             currentOutline: outline,
-            nodeId: node.id
           }),
           signal: abortControllerRef.current.signal
         });
 
-        if (!response.ok) {
-          const errText = await response.text();
-          throw new Error(`Server returned ${response.status}: ${errText}`);
-        }
-        if (!response.body) throw new Error('No body returned from server');
+        if (!routerRes.ok) throw new Error("Router failed to fetch");
+        const routerData = await routerRes.json();
+        const tasks = routerData.tasks || [];
 
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder();
-        let buffer = '';
-        let fullText = '';
-        let currentStatus = '';
+        // Step 2: Execute Experts sequentially
+        for (const task of tasks) {
+          if (abortControllerRef.current?.signal.aborted) break;
 
-        while (true) {
-          if (abortControllerRef.current?.signal.aborted) {
-            break;
+          let statusMsg = "";
+          if (task.agentType === "prose") statusMsg = "✍️ 散文写作专家正在撰写段落...";
+          if (task.agentType === "math") statusMsg = "🧮 数学推导专家正在严谨排版...";
+          if (task.agentType === "matplotlib") statusMsg = "📊 可视化专家正在编写 Python 图表脚本...";
+          if (task.agentType === "diagram") statusMsg = "🗺️ 拓扑绘图专家正在构建 Mermaid...";
+
+          updateNodeContent(node.id, `> **⏳ ${statusMsg}**\\n\\n${fullText}`);
+
+          const expertRes = await fetch('/api/chat', {
+            method: 'POST',
+            headers: baseHeaders,
+            body: JSON.stringify({
+              type: 'expert',
+              task: task,
+            }),
+            signal: abortControllerRef.current.signal
+          });
+
+          if (!expertRes.ok) throw new Error(`Expert ${task.agentType} failed`);
+          if (!expertRes.body) throw new Error('No body returned from server');
+
+          const reader = expertRes.body.getReader();
+          const decoder = new TextDecoder();
+
+          while (true) {
+            if (abortControllerRef.current?.signal.aborted) break;
+            const { done, value } = await reader.read();
+            if (done) break;
+            
+            const chunkStr = decoder.decode(value, { stream: true });
+            fullText += chunkStr;
+            updateNodeContent(node.id, `> **⏳ ${statusMsg}**\\n\\n${fullText}`);
           }
-          const { done, value } = await reader.read();
-          if (done) break;
           
-          const chunkStr = decoder.decode(value, { stream: true });
-          buffer += chunkStr;
-          
-          const lines = buffer.split('\n');
-          buffer = lines.pop() || ''; // Keep the last partial line in the buffer
-          
-          for (const line of lines) {
-            if (!line.trim()) continue;
-            try {
-              const event = JSON.parse(line);
-              
-              if (event.type === 'status') {
-                currentStatus = event.data;
-              } else if (event.type === 'chunk') {
-                fullText += event.data;
-              } else if (event.type === 'error') {
-                throw new Error(event.data);
-              } else if (event.type === 'done') {
-                currentStatus = '';
-              }
-              
-              const displayContent = currentStatus ? `> **⏳ ${currentStatus}**\\n\\n${fullText}` : fullText;
-              updateNodeContent(node.id, displayContent);
-            } catch (e: any) {
-              // Ignore parse errors from partial lines or non-json if streaming splits mid-JSON
-              // Wait, NDJSON from our server guarantees newline separation. If split mid-chunk, we might need a buffer.
-            }
-          }
+          fullText += '\\n\\n';
         }
         
-        // After stream is done, clean
+        // Finalize
         updateNodeContent(node.id, fullText);
       } catch (err: any) {
         if (err.name === 'AbortError' || err.message.includes('aborted')) {
           console.log('Generation aborted by user.');
-          break; // Exit the loop gracefully
+          break;
         }
         console.error(`Error generating content for ${node.title}:`, err);
         alert(`Failed to generate content for "${node.title}". Error: ${err.message}`);
         hasError = true;
-        break; // Stop generating if there's an error
+        break;
       }
       
       const currentState = useTextbookStore.getState();
