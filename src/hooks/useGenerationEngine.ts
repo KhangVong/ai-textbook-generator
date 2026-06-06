@@ -94,7 +94,7 @@ export const useGenerationEngine = () => {
           let statusMsg = "";
           if (task.agentType === "prose") statusMsg = "✍️ 散文写作专家正在撰写段落...";
           if (task.agentType === "math") statusMsg = "🧮 数学推导专家正在严谨排版...";
-          if (task.agentType === "matplotlib") statusMsg = "📊 可视化专家正在编写 Python 图表脚本...";
+          if (task.agentType === "matplotlib" || task.agentType === "chart") statusMsg = "📊 可视化专家正在构建数据图表...";
           if (task.agentType === "diagram") statusMsg = "🗺️ 拓扑绘图专家正在构建 Mermaid...";
 
           updateNodeContent(node.id, `> **⏳ ${statusMsg}**\\n\\n${fullText}`);

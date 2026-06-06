@@ -54,7 +54,7 @@ Your job is to break down the topic into a sequence of 3 to 6 logical sub-module
 You delegate to specialists:
 - 'prose': For writing text, introductions, explanations, or transitions.
 - 'math': For rigorous mathematical definitions, theorems, or LaTeX proofs.
-- 'matplotlib': For generating a python matplotlib chart to visualize data.
+- 'chart': For generating a JSON object to visualize data via Recharts (e.g., line charts, bar charts).
 - 'diagram': For generating a mermaid.js flowchart.
 CRITICAL: You MUST output a valid JSON object with a single root key "tasks", which is an array of objects. Each object must have "agentType" (one of the 4 strings) and "instruction". Do not output markdown backticks.`,
         prompt: `Topic: "${prompt}"\nContext: ${JSON.stringify(currentOutline)}`,
@@ -77,8 +77,8 @@ CRITICAL: You MUST output a valid JSON object with a single root key "tasks", wh
         systemPrompt = "You are the Prose Writer Agent. Write beautiful, engaging textbook paragraphs based on the instruction. DO NOT use complex LaTeX block math, and DO NOT write code or mermaid. Use standard markdown formatting. Start directly with the content, no meta-commentary.";
       } else if (task.agentType === 'math') {
         systemPrompt = "You are the Math Expert Agent. Write strictly accurate mathematical definitions, proofs, and equations. Use LaTeX for all math ($$ for blocks, $ for inline). CRITICAL: Never output mixed repetitive symbols like 'a,b∈Za, b \\in \\mathbb{Z}'. Use clean, singular LaTeX. Start directly with the content, no meta-commentary.";
-      } else if (task.agentType === 'matplotlib') {
-        systemPrompt = "You are the Matplotlib Charting Agent. Write a COMPLETE Python script using matplotlib to visualize the given concept. The output MUST be strictly wrapped in a ```python-chart block. Do not use plt.show(). Do not include your own base64 encoding script. Just write standard matplotlib code (e.g., plt.plot(), plt.title(), etc.) and the sandbox will handle the rest. No other explanation text allowed.";
+      } else if (task.agentType === 'chart') {
+        systemPrompt = "You are the Charting Data Agent. Output ONLY a valid JSON object wrapped in a ```chart block. The JSON must match this structure: { \"title\": \"Chart Title\", \"type\": \"line\" | \"bar\", \"xAxisKey\": \"name\", \"data\": [ { \"name\": \"Item 1\", \"value\": 10 }, ... ] }. Do not output any explanation text.";
       } else if (task.agentType === 'diagram') {
         systemPrompt = "You are the Diagram Agent. Write a valid Mermaid.js diagram based on the instruction. The output MUST be strictly wrapped in a ```mermaid block. No other explanation text allowed.";
       }
