@@ -1,5 +1,5 @@
 import { createOpenAI } from '@ai-sdk/openai';
-import { streamText, generateObject, generateText } from 'ai';
+import { streamText, generateObject, generateText, tool } from 'ai';
 import { z } from 'zod';
 import { NextResponse } from 'next/server';
 
@@ -83,7 +83,7 @@ Choose from these expert types:
               system: routerSystem,
               prompt: `Topic to break down: "${prompt}"\n\nOutline context: ${JSON.stringify(currentOutline)}\n\nCRITICAL: You MUST call the 'submit_plan' function/tool to provide the breakdown. Do not output plain text.`,
               tools: {
-                submit_plan: {
+                submit_plan: (tool as any)({
                   description: 'Submit the breakdown of tasks for the experts.',
                   parameters: z.object({
                     tasks: z.array(z.object({
@@ -91,7 +91,7 @@ Choose from these expert types:
                       instruction: z.string().describe('Highly specific instruction for the expert.')
                     }))
                   })
-                } as any
+                })
               },
               // removed toolChoice: 'required' as it might crash DeepSeek's OpenAI compatibility layer
             });
