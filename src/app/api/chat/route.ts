@@ -81,6 +81,7 @@ Return a JSON sequence of tasks.`;
 
             const { object: plan } = await generateObject({
               model: openai.chat(modelName),
+              mode: 'json', // Fallback to standard JSON mode for compatibility with DeepSeek
               system: routerSystem,
               prompt: `Topic to break down: "${prompt}"\n\nOutline context: ${JSON.stringify(currentOutline)}`,
               schema: z.object({
