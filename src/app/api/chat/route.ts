@@ -1,5 +1,5 @@
 import { createOpenAI } from '@ai-sdk/openai';
-import { streamText, generateObject, generateText } from 'ai';
+import { streamText, generateObject, generateText, tool } from 'ai';
 import { z } from 'zod';
 import { NextResponse } from 'next/server';
 
@@ -83,7 +83,7 @@ Choose from these expert types:
               system: routerSystem,
               prompt: `Topic to break down: "${prompt}"\n\nOutline context: ${JSON.stringify(currentOutline)}`,
               tools: {
-                submit_plan: {
+                submit_plan: tool({
                   description: 'Submit the breakdown of tasks for the experts.',
                   parameters: z.object({
                     tasks: z.array(z.object({
@@ -91,7 +91,7 @@ Choose from these expert types:
                       instruction: z.string().describe('Highly specific instruction for the expert.')
                     }))
                   })
-                }
+                })
               },
               toolChoice: 'required',
             });
