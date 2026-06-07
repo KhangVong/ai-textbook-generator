@@ -45,43 +45,183 @@ Return ONLY a valid JSON object matching this structure: { "outline": [ ... ] }.
       });
       return new Response(result.textStream);
     } 
-    if (type === 'router') {
-      const result = await streamText({
-        model: openai.chat(modelName),
-        system: `You are the Manager/Router Agent for a textbook generator.
-Your job is to break down the topic into a sequence of 3 to 6 logical sub-modules.
-You delegate to specialists:
-- 'prose': For writing text, introductions, explanations, or transitions.
-- 'math': For rigorous mathematical definitions, theorems, or LaTeX proofs.
-- 'chart': For plotting mathematical functions, geometry, or vectors using Python Matplotlib. DO NOT use this for statistical bar/line charts!
-- 'diagram': For generating a mermaid.js flowchart.
-CRITICAL: You MUST output a valid JSON object with a single root key "tasks", which is an array of objects. Each object must have "agentType" (one of the 4 strings) and "instruction". Do not output markdown backticks. DO NOT assign tasks to generate "JSON flowcharts". Only use 'diagram' for mermaid.`,
-        prompt: `Topic: "${prompt}"\nContext: ${JSON.stringify(currentOutline)}`,
-        temperature: 0.1,
+    if (type === 'generate_chapter') {
+      const { targetAudience, tone, outlineContext } = body;
+      
+      const systemPrompt = `You are a master Textbook Writer Agent. Your job is to write a ${tone || 'comprehensive and rigorous'} textbook chapter on the requested topic.
+The target audience for this textbook is: ${targetAudience || 'undergraduate level'}. Please adjust your depth of explanation, vocabulary, and mathematical rigor accordingly.
+
+To give you context, here is the full framework/outline of the textbook:
+<textbook_outline>
+${JSON.stringify(outlineContext, null, 2)}
+</textbook_outline>
+Please ensure your current chapter fits seamlessly into this overall structure without repeating information from other chapters unnecessarily.
+
+Your writing must follow these strict guidelines:
+1. Write both intuitive explanations (prose) and rigorous mathematics.
+2. For all inline math, you MUST use $...$ (e.g., $n > 1$, $p \\mid ab$). Never use \\( ... \\).
+3. For all block math, you MUST use $$...$$ (e.g., $$ n = p_1 \\cdots p_k $$). Never use \\[ ... \\].
+4. Do NOT output QED symbols (such as \\square, \\blacksquare, \\qed, \\QED, □, or ∎) or any other end-of-proof markers (including boxed symbols) at the end of proofs. Finish them naturally with a clear summary or concluding sentence.
+5. Do NOT output mixed repetitive symbols like 'a,b∈Za, b \\in \\mathbb{Z}'. Use clean, singular LaTeX.
+6. Write naturally, starting directly with the chapter header and content. Do not include meta-commentary like "Sure, here is the text".
+7. Strongly adhere to the requested tone and style. Do not drift into casual language if the tone is formal, or overly dense language if the tone is conversational.
+
+You have access to two tools to make the textbook visually rich:
+- \`generate_diagram\`: Use this to generate a Mermaid.js flowchart if a process or structure warrants visualization.
+- \`generate_chart\`: Use this to generate a Python Matplotlib chart to plot a mathematical function or geometric figure. DO NOT use this for statistical data charts (bar/line/pie charts).
+
+Guidelines for using tools:
+- Call them at the exact position in the text where the diagram or chart should be displayed.
+- After calling a tool, the orchestrator will insert the generated code block and reply to you. You can then continue writing from where you left off.
+- Do not duplicate the code block in your regular text output; calling the tool is sufficient.
+`;
+
+      const encoder = new TextEncoder();
+      const customStream = new ReadableStream({
+        async start(controller) {
+          const messages: any[] = [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: `Please write a comprehensive textbook chapter for the topic: "${prompt}"` }
+          ];
+
+          const tools = [
+            {
+              type: "function",
+              function: {
+                name: "generate_diagram",
+                description: "Generate a Mermaid.js flowchart to visualize a concept or process. Use this tool only when a diagram is genuinely helpful for the reader.",
+                parameters: {
+                  type: "object",
+                  properties: {
+                    mermaid_code: { type: "string", description: "The Mermaid.js code. Must follow strict rules: wrap all node text in double quotes." }
+                  },
+                  required: ["mermaid_code"]
+                }
+              }
+            },
+            {
+              type: "function",
+              function: {
+                name: "generate_chart",
+                description: "Generate a Python Matplotlib chart. Use this tool only when a plot is genuinely helpful. Do not use for statistical charts.",
+                parameters: {
+                  type: "object",
+                  properties: {
+                    matplotlib_code: { type: "string", description: "The Python code using matplotlib.pyplot. Must follow strict rules." }
+                  },
+                  required: ["matplotlib_code"]
+                }
+              }
+            }
+          ];
+
+          let isDone = false;
+          let iterations = 0;
+
+          while (!isDone && iterations < 5) {
+            iterations++;
+            const res = await fetch(`${baseURL}/chat/completions`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${apiKey || 'dummy'}`
+              },
+              body: JSON.stringify({
+                model: modelName,
+                messages,
+                tools,
+                tool_choice: 'auto',
+                temperature: 0.1,
+                stream: true,
+              })
+            });
+
+            if (!res.ok) {
+              const err = await res.text();
+              controller.enqueue(encoder.encode(`\n\nAPI Error: ${err}`));
+              break;
+            }
+
+            const reader = res.body!.getReader();
+            const decoder = new TextDecoder();
+            let assistantMessage = { role: 'assistant', content: '', tool_calls: [] as any[] };
+            let toolCallsRaw: any = {};
+
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+              
+              const chunk = decoder.decode(value, { stream: true });
+              const lines = chunk.split('\n').filter(line => line.trim() !== '');
+              
+              for (const line of lines) {
+                if (line.startsWith('data: ') && line !== 'data: [DONE]') {
+                  try {
+                    const data = JSON.parse(line.slice(6));
+                    if (!data.choices || data.choices.length === 0) continue;
+                    const delta = data.choices[0].delta;
+                    
+                    if (delta.content) {
+                      assistantMessage.content += delta.content;
+                      controller.enqueue(encoder.encode(delta.content));
+                    }
+                    
+                    if (delta.tool_calls) {
+                      for (const tc of delta.tool_calls) {
+                        const idx = tc.index;
+                        if (!toolCallsRaw[idx]) {
+                          toolCallsRaw[idx] = { id: tc.id, type: 'function', function: { name: tc.function.name || '', arguments: tc.function.arguments || '' } };
+                        } else {
+                          if (tc.id) toolCallsRaw[idx].id += tc.id;
+                          if (tc.function?.name) toolCallsRaw[idx].function.name += tc.function.name;
+                          if (tc.function?.arguments) toolCallsRaw[idx].function.arguments += tc.function.arguments;
+                        }
+                      }
+                    }
+                  } catch (e) {
+                    // Ignore parsing errors for partial JSON
+                  }
+                }
+              }
+            }
+
+            const parsedToolCalls = Object.values(toolCallsRaw);
+            if (parsedToolCalls.length > 0) {
+              assistantMessage.tool_calls = parsedToolCalls;
+              messages.push(assistantMessage);
+
+              for (const tc of parsedToolCalls as any[]) {
+                const name = tc.function.name;
+                const argsStr = tc.function.arguments;
+                let args: any = {};
+                try { args = JSON.parse(argsStr); } catch (e) {}
+
+                if (name === 'generate_diagram') {
+                  const code = args.mermaid_code || '';
+                  const block = `\n\n\`\`\`mermaid\n${code.trim()}\n\`\`\`\n\n`;
+                  controller.enqueue(encoder.encode(block));
+                  messages.push({ role: 'tool', tool_call_id: tc.id, name: name, content: "Diagram successfully generated and inserted." });
+                } else if (name === 'generate_chart') {
+                  const code = args.matplotlib_code || '';
+                  const block = `\n\n\`\`\`python-chart\n${code.trim()}\n\`\`\`\n\n`;
+                  controller.enqueue(encoder.encode(block));
+                  messages.push({ role: 'tool', tool_call_id: tc.id, name: name, content: "Chart successfully generated and inserted." });
+                } else {
+                  messages.push({ role: 'tool', tool_call_id: tc.id, name: name, content: "Error: Unknown tool." });
+                }
+              }
+            } else {
+              if (assistantMessage.content) {
+                messages.push({ role: 'assistant', content: assistantMessage.content });
+              }
+              isDone = true;
+            }
+          }
+          controller.close();
+        }
       });
 
-      return result.toTextStreamResponse();
-    }
-
-    if (type === 'expert') {
-      let systemPrompt = '';
-      if (task.agentType === 'prose') {
-        systemPrompt = "You are the Prose Writer Agent. Write beautiful, engaging textbook paragraphs based on the instruction. DO NOT use complex LaTeX block math, and DO NOT write code or mermaid. Use standard markdown formatting. CRITICAL: For any inline math, you MUST use $...$, NOT \\(...\\). Start directly with the content, no meta-commentary.";
-      } else if (task.agentType === 'math') {
-        systemPrompt = "You are the Math Expert Agent. Write strictly accurate mathematical definitions, proofs, and equations. Use LaTeX for all math. CRITICAL: You MUST use $$...$$ for block math and $...$ for inline math. Do NOT use \\( or \\[. Never output mixed repetitive symbols like 'a,b∈Za, b \\in \\mathbb{Z}'. Do NOT output QED symbols (like \\square, \\blacksquare, or □) at the end of proofs. Use clean, singular LaTeX. Start directly with the content, no meta-commentary.";
-      } else if (task.agentType === 'chart') {
-        systemPrompt = "You are the Python Plotting Agent. Output ONLY a valid Python code block wrapped in ```python-chart\\n...\\n```. The code must use matplotlib.pyplot as plt to draw the mathematical function or geometric figure requested. DO NOT draw statistical bar charts or pie charts! Format the plot beautifully (grid, labels). Do not use plt.show() or plt.savefig(). Do not output any explanation text.";
-      } else if (task.agentType === 'diagram') {
-        systemPrompt = "You are the Diagram Agent. Write a valid Mermaid.js diagram based on the instruction. The output MUST be strictly wrapped in a ```mermaid block. No other explanation text allowed. CRITICAL RULE: You MUST enclose all node labels in double quotes. Example: A[\"Initialize: i = 2\"] NOT A[Initialize: i = 2]. NEVER use unquoted square brackets [], parentheses (), or curly braces {} inside node text as it causes severe syntax errors. DO NOT use HTML tags.";
-      }
-
-      const result = await streamText({
-        model: openai.chat(modelName),
-        system: systemPrompt,
-        prompt: task.instruction,
-        temperature: 0.1,
-      });
-      return result.toTextStreamResponse();
+      return new Response(customStream, { headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
     }
 
     return NextResponse.json({ error: 'Invalid operation type' }, { status: 400 });
