@@ -71,9 +71,20 @@ export const useGenerationEngine = () => {
         };
 
         // Step 1: Route
-        updateNodeContent(node.id, `> **⏳ 👑 主理人正在拆解子任务...**\\n\\n`);
+        updateNodeContent(node.id, `> **⏳ 👑 主理人正在拆解子任务...**\n\n`);
         let routerRes;
         let routerText = '';
+        // Strip full text content from outline to save tokens and prevent few-shot hallucinations
+        const cleanOutline = outline.map(n => {
+          const cleanNode = (node: any): any => ({
+            id: node.id,
+            title: node.title,
+            level: node.level,
+            children: node.children ? node.children.map(cleanNode) : []
+          });
+          return cleanNode(n);
+        });
+
         let routerRetries = 2;
         while (routerRetries >= 0) {
           routerRes = await fetch('/api/chat', {
@@ -82,7 +93,7 @@ export const useGenerationEngine = () => {
             body: JSON.stringify({
               type: 'router',
               prompt: node.title,
-              currentOutline: outline,
+              currentOutline: cleanOutline,
             }),
             signal: abortControllerRef.current.signal
           });
@@ -96,7 +107,7 @@ export const useGenerationEngine = () => {
               const { done, value } = await reader.read();
               if (done) break;
               routerText += decoder.decode(value, { stream: true });
-              updateNodeContent(node.id, `> **⏳ 👑 主理人正在拆解子任务...**\\n\\n\`\`\`json\\n${routerText}\\n\`\`\``);
+              updateNodeContent(node.id, `> **⏳ 👑 主理人正在拆解子任务...**\n\n\`\`\`json\n${routerText}\n\`\`\``);
             }
             break;
           }
@@ -129,7 +140,7 @@ export const useGenerationEngine = () => {
           if (task.agentType === "matplotlib" || task.agentType === "chart") statusMsg = "📊 可视化专家正在构建数据图表...";
           if (task.agentType === "diagram") statusMsg = "🗺️ 拓扑绘图专家正在构建 Mermaid...";
 
-          updateNodeContent(node.id, `> **⏳ ${statusMsg}**\\n\\n${fullText}`);
+          updateNodeContent(node.id, `> **⏳ ${statusMsg}**\n\n${fullText}`);
 
           const expertRes = await fetch('/api/chat', {
             method: 'POST',
@@ -154,10 +165,24 @@ export const useGenerationEngine = () => {
             
             const chunkStr = decoder.decode(value, { stream: true });
             fullText += chunkStr;
-            updateNodeContent(node.id, `> **⏳ ${statusMsg}**\\n\\n${fullText}`);
+            
+            // Format fallback for GPT-4o
+            const displayFormat = fullText
+              .replace(/\\\(/g, '$')
+              .replace(/\\\)/g, '$')
+              .replace(/\\\[/g, '$$$$')
+              .replace(/\\\]/g, '$$$$');
+              
+            updateNodeContent(node.id, `> **⏳ ${statusMsg}**\n\n${displayFormat}`);
           }
           
-          fullText += '\\n\\n';
+          fullText = fullText
+            .replace(/\\\(/g, '$')
+            .replace(/\\\)/g, '$')
+            .replace(/\\\[/g, '$$$$')
+            .replace(/\\\]/g, '$$$$');
+            
+          fullText += '\n\n';
         }
         
         // Finalize

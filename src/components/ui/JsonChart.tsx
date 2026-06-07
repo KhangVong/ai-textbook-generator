@@ -33,7 +33,7 @@ interface JsonChartProps {
   data: string;
 }
 
-const COLORS = ['hsl(var(--primary))', 'hsl(var(--accent))', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
+const COLORS = ['var(--primary)', 'var(--accent)', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
 
 export const JsonChart: React.FC<JsonChartProps> = ({ data }) => {
   const parsedData = useMemo<ChartData | null>(() => {
@@ -58,19 +58,31 @@ export const JsonChart: React.FC<JsonChartProps> = ({ data }) => {
     );
   }
 
-  const { type, title, data: chartData, xAxisKey = 'name', series } = parsedData;
+  const { type, title, data: chartData, xAxisKey = 'name', series: manualSeries } = parsedData;
+
+  const series = manualSeries || useMemo(() => {
+    if (!chartData || chartData.length === 0) return [];
+    const firstItem = chartData[0];
+    return Object.keys(firstItem)
+      .filter(key => key !== xAxisKey)
+      .map((key, idx) => ({
+        key,
+        name: key,
+        color: COLORS[idx % COLORS.length]
+      }));
+  }, [chartData, xAxisKey]);
 
   const renderChart = () => {
     switch (type) {
       case 'line':
         return (
           <LineChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
-            <XAxis dataKey={xAxisKey} stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
-            <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
+            <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+            <XAxis dataKey={xAxisKey} stroke="var(--foreground)" opacity={0.6} fontSize={12} tickLine={false} axisLine={false} />
+            <YAxis stroke="var(--foreground)" opacity={0.6} fontSize={12} tickLine={false} axisLine={false} />
             <Tooltip
-              contentStyle={{ backgroundColor: 'hsl(var(--card))', borderColor: 'hsl(var(--border))', borderRadius: '8px', color: 'hsl(var(--foreground))' }}
-              itemStyle={{ color: 'hsl(var(--foreground))' }}
+              contentStyle={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)', borderRadius: '8px', color: 'var(--foreground)' }}
+              itemStyle={{ color: 'var(--foreground)' }}
             />
             <Legend wrapperStyle={{ paddingTop: '20px' }} />
             {series.map((s, idx) => (
@@ -91,12 +103,12 @@ export const JsonChart: React.FC<JsonChartProps> = ({ data }) => {
       case 'bar':
         return (
           <BarChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
-            <XAxis dataKey={xAxisKey} stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
-            <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
+            <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+            <XAxis dataKey={xAxisKey} stroke="var(--foreground)" opacity={0.6} fontSize={12} tickLine={false} axisLine={false} />
+            <YAxis stroke="var(--foreground)" opacity={0.6} fontSize={12} tickLine={false} axisLine={false} />
             <Tooltip
-              contentStyle={{ backgroundColor: 'hsl(var(--card))', borderColor: 'hsl(var(--border))', borderRadius: '8px', color: 'hsl(var(--foreground))' }}
-              cursor={{ fill: 'hsl(var(--secondary))', opacity: 0.4 }}
+              contentStyle={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)', borderRadius: '8px', color: 'var(--foreground)' }}
+              cursor={{ fill: 'var(--foreground)', opacity: 0.05 }}
             />
             <Legend wrapperStyle={{ paddingTop: '20px' }} />
             {series.map((s, idx) => (
@@ -117,7 +129,7 @@ export const JsonChart: React.FC<JsonChartProps> = ({ data }) => {
         return (
           <PieChart margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
             <Tooltip
-              contentStyle={{ backgroundColor: 'hsl(var(--card))', borderColor: 'hsl(var(--border))', borderRadius: '8px', color: 'hsl(var(--foreground))' }}
+              contentStyle={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)', borderRadius: '8px', color: 'var(--foreground)' }}
             />
             <Legend wrapperStyle={{ paddingTop: '20px' }} />
             <Pie

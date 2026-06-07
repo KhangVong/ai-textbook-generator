@@ -45,7 +45,6 @@ Return ONLY a valid JSON object matching this structure: { "outline": [ ... ] }.
       });
       return new Response(result.textStream);
     } 
-    
     if (type === 'router') {
       const result = await streamText({
         model: openai.chat(modelName),
@@ -54,9 +53,9 @@ Your job is to break down the topic into a sequence of 3 to 6 logical sub-module
 You delegate to specialists:
 - 'prose': For writing text, introductions, explanations, or transitions.
 - 'math': For rigorous mathematical definitions, theorems, or LaTeX proofs.
-- 'chart': For generating a JSON object to visualize data via Recharts (e.g., line charts, bar charts).
+- 'chart': For plotting mathematical functions, geometry, or vectors using Python Matplotlib. DO NOT use this for statistical bar/line charts!
 - 'diagram': For generating a mermaid.js flowchart.
-CRITICAL: You MUST output a valid JSON object with a single root key "tasks", which is an array of objects. Each object must have "agentType" (one of the 4 strings) and "instruction". Do not output markdown backticks.`,
+CRITICAL: You MUST output a valid JSON object with a single root key "tasks", which is an array of objects. Each object must have "agentType" (one of the 4 strings) and "instruction". Do not output markdown backticks. DO NOT assign tasks to generate "JSON flowcharts". Only use 'diagram' for mermaid.`,
         prompt: `Topic: "${prompt}"\nContext: ${JSON.stringify(currentOutline)}`,
         temperature: 0.1,
       });
@@ -67,13 +66,13 @@ CRITICAL: You MUST output a valid JSON object with a single root key "tasks", wh
     if (type === 'expert') {
       let systemPrompt = '';
       if (task.agentType === 'prose') {
-        systemPrompt = "You are the Prose Writer Agent. Write beautiful, engaging textbook paragraphs based on the instruction. DO NOT use complex LaTeX block math, and DO NOT write code or mermaid. Use standard markdown formatting. Start directly with the content, no meta-commentary.";
+        systemPrompt = "You are the Prose Writer Agent. Write beautiful, engaging textbook paragraphs based on the instruction. DO NOT use complex LaTeX block math, and DO NOT write code or mermaid. Use standard markdown formatting. CRITICAL: For any inline math, you MUST use $...$, NOT \\(...\\). Start directly with the content, no meta-commentary.";
       } else if (task.agentType === 'math') {
-        systemPrompt = "You are the Math Expert Agent. Write strictly accurate mathematical definitions, proofs, and equations. Use LaTeX for all math ($$ for blocks, $ for inline). CRITICAL: Never output mixed repetitive symbols like 'a,b∈Za, b \\in \\mathbb{Z}'. Use clean, singular LaTeX. Start directly with the content, no meta-commentary.";
+        systemPrompt = "You are the Math Expert Agent. Write strictly accurate mathematical definitions, proofs, and equations. Use LaTeX for all math. CRITICAL: You MUST use $$...$$ for block math and $...$ for inline math. Do NOT use \\( or \\[. Never output mixed repetitive symbols like 'a,b∈Za, b \\in \\mathbb{Z}'. Do NOT output QED symbols (like \\square, \\blacksquare, or □) at the end of proofs. Use clean, singular LaTeX. Start directly with the content, no meta-commentary.";
       } else if (task.agentType === 'chart') {
-        systemPrompt = "You are the Charting Data Agent. Output ONLY a valid JSON object wrapped in a ```chart block. The JSON must match this structure: { \"title\": \"Chart Title\", \"type\": \"line\" | \"bar\", \"xAxisKey\": \"name\", \"data\": [ { \"name\": \"Item 1\", \"value\": 10 }, ... ] }. Do not output any explanation text.";
+        systemPrompt = "You are the Python Plotting Agent. Output ONLY a valid Python code block wrapped in ```python-chart\\n...\\n```. The code must use matplotlib.pyplot as plt to draw the mathematical function or geometric figure requested. DO NOT draw statistical bar charts or pie charts! Format the plot beautifully (grid, labels). Do not use plt.show() or plt.savefig(). Do not output any explanation text.";
       } else if (task.agentType === 'diagram') {
-        systemPrompt = "You are the Diagram Agent. Write a valid Mermaid.js diagram based on the instruction. The output MUST be strictly wrapped in a ```mermaid block. No other explanation text allowed.";
+        systemPrompt = "You are the Diagram Agent. Write a valid Mermaid.js diagram based on the instruction. The output MUST be strictly wrapped in a ```mermaid block. No other explanation text allowed. CRITICAL RULE: You MUST enclose all node labels in double quotes. Example: A[\"Initialize: i = 2\"] NOT A[Initialize: i = 2]. NEVER use unquoted square brackets [], parentheses (), or curly braces {} inside node text as it causes severe syntax errors. DO NOT use HTML tags.";
       }
 
       const result = await streamText({
@@ -92,3 +91,4 @@ CRITICAL: You MUST output a valid JSON object with a single root key "tasks", wh
     return NextResponse.json({ error: error.message || 'An error occurred' }, { status: 500 });
   }
 }
+

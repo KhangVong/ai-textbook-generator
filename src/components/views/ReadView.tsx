@@ -10,7 +10,6 @@ import rehypeKatex from 'rehype-katex';
 
 import { Loader2, Play, Lock, Unlock, Edit3, Trash2, ZoomIn, ZoomOut, Settings, Plus, BookOpen } from 'lucide-react';
 import { MermaidDiagram } from '@/components/ui/MermaidDiagram';
-import { JsonFlowchart } from '@/components/ui/JsonFlowchart';
 import { JsonChart } from '@/components/ui/JsonChart';
 import { PythonChart } from '@/components/ui/PythonChart';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
@@ -228,18 +227,6 @@ export const ReadView = () => {
                         if (!inline && match && match[1] === 'mermaid') {
                           return <MermaidDiagram chart={contentString} />;
                         }
-                        
-                        // New robust JSON Flowchart support
-                        if (!inline && match && match[1] === 'json') {
-                          try {
-                            const parsed = JSON.parse(contentString);
-                            if (parsed && parsed.type === 'flowchart') {
-                              return <JsonFlowchart data={contentString} />;
-                            }
-                          } catch (e) {
-                            // Fall through to standard code block if JSON is invalid
-                          }
-                        }
 
                         // Robust Data Charts
                         if (!inline && match && match[1] === 'chart') {
@@ -247,7 +234,7 @@ export const ReadView = () => {
                         }
 
                         // Python Matplotlib Sandboxing
-                        if (!inline && match && match[1] === 'python-chart') {
+                        if (!inline && match && (match[1] === 'python-chart' || (match[1] === 'python' && contentString.includes('matplotlib')))) {
                           return <PythonChart code={contentString} />;
                         }
 
