@@ -38,13 +38,65 @@ The outline should be deeply nested (level 1 = chapters, level 2 = sections, lev
 Ensure each node has a unique 'id' (a short descriptive string without spaces, like 'chap1-intro').
 Return ONLY a valid JSON object matching this structure: { "outline": [ ... ] }. Do not include any markdown formatting, backticks, or explanation.`;
       
-      const result = await streamText({
-        model: openai.chat(modelName),
-        system: systemPrompt,
-        prompt: prompt,
+      const messages = [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: prompt }
+      ];
+
+      const res = await fetch(`${baseURL}/chat/completions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey || 'dummy'}`
+        },
+        body: JSON.stringify({
+          model: modelName,
+          messages,
+          temperature: 0.1,
+          stream: true,
+        })
       });
-      return new Response(result.textStream);
-    } 
+
+      if (!res.ok) {
+        const err = await res.text();
+        throw new Error(`Outline API Error: ${err}`);
+      }
+
+      const encoder = new TextEncoder();
+      const customStream = new ReadableStream({
+        async start(controller) {
+          const reader = res.body!.getReader();
+          const decoder = new TextDecoder();
+          
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            
+            const chunk = decoder.decode(value, { stream: true });
+            const lines = chunk.split('\n').filter(line => line.trim() !== '');
+            
+            for (const line of lines) {
+              if (line.startsWith('data: ') && line !== 'data: [DONE]') {
+                try {
+                  const data = JSON.parse(line.slice(6));
+                  if (data.choices && data.choices.length > 0) {
+                    const delta = data.choices[0].delta;
+                    if (delta.content) {
+                      controller.enqueue(encoder.encode(delta.content));
+                    }
+                  }
+                } catch (e) {
+                  // Ignore partial JSON
+                }
+              }
+            }
+          }
+          controller.close();
+        }
+      });
+
+      return new Response(customStream, { headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
+    }
     if (type === 'generate_chapter') {
       const { targetAudience, tone, outlineContext } = body;
       
