@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useTextbookStore, BookMetadata } from '@/store/useTextbookStore';
-import { BookOpen, Loader2, ArrowRight, UserCircle, MessageSquare, BookMarked, Compass } from 'lucide-react';
+import { BookOpen, Loader2, ArrowRight, UserCircle, MessageSquare, BookMarked, Compass, Settings2 } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import { useAuth } from '@clerk/nextjs';
 import { useRouter } from 'next/navigation';
@@ -18,11 +18,16 @@ export const NlpWizard = () => {
   const [step, setStep] = useState<'INPUT' | 'PROFILE_CONFIRM'>('INPUT');
   const [localMetadata, setLocalMetadata] = useState<BookMetadata>({});
 
-  const { apiKey, baseURL, modelName, setOutline, setStatus, setTitle, setMetadata } = useTextbookStore();
+  const { apiKey, baseURL, modelName, setOutline, setStatus, setTitle, setMetadata, setIsSettingsOpen } = useTextbookStore();
   const { userId } = useAuth();
   const router = useRouter();
 
   const checkConfig = () => {
+    const isCustomUrl = baseURL && !baseURL.includes('api.openai.com');
+    if (!apiKey && !isCustomUrl) {
+      setError('Please configure your API Key first using the settings icon.');
+      return false;
+    }
     return true;
   };
 
@@ -164,7 +169,31 @@ Prerequisites: ${localMetadata.prerequisites}
         className="bg-white border border-zinc-200 rounded-2xl shadow-xl shadow-zinc-200/50 overflow-hidden relative min-h-[140px] w-full"
       >
         <AnimatePresence mode="wait">
-          {isLoading ? (
+          {!apiKey && !(baseURL && !baseURL.includes('api.openai.com')) ? (
+            <motion.div
+              key="setup"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="flex flex-col items-center justify-center p-8 text-center space-y-4"
+            >
+              <div className="w-12 h-12 bg-zinc-100 text-zinc-900 rounded-full flex items-center justify-center shadow-inner">
+                <Settings2 className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-zinc-900">API Setup Required</h3>
+                <p className="text-sm text-zinc-500 max-w-sm mx-auto mt-1.5 leading-relaxed">
+                  Please configure your DeepSeek API key to start generating learning roadmaps and textbooks.
+                </p>
+              </div>
+              <button
+                onClick={() => setIsSettingsOpen(true)}
+                className="mt-2 px-6 py-2.5 bg-zinc-900 text-white rounded-xl text-sm font-medium hover:bg-zinc-800 transition-colors shadow-md shadow-zinc-900/10"
+              >
+                Configure API Key
+              </button>
+            </motion.div>
+          ) : isLoading ? (
             <motion.div 
               key="loading"
               initial={{ opacity: 0 }}
