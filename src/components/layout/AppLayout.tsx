@@ -48,7 +48,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
               onClick={() => setCurrentView('READ')}
               className={`flex items-center px-4 py-1.5 rounded-md text-xs font-semibold transition-all duration-200 ${
                 currentView === 'READ' 
-                  ? 'bg-white shadow-sm text-blue-600 border border-zinc-200/50' 
+                  ? 'bg-white shadow-sm text-zinc-900 border border-zinc-200/50' 
                   : 'text-zinc-500 hover:text-zinc-900'
               }`}
             >
@@ -59,7 +59,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
               onClick={() => setCurrentView('MINDMAP')}
               className={`flex items-center px-4 py-1.5 rounded-md text-xs font-semibold transition-all duration-200 ${
                 currentView === 'MINDMAP' 
-                  ? 'bg-white shadow-sm text-blue-600 border border-zinc-200/50' 
+                  ? 'bg-white shadow-sm text-zinc-900 border border-zinc-200/50' 
                   : 'text-zinc-500 hover:text-zinc-900'
               }`}
             >

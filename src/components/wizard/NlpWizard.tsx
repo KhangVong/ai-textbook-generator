@@ -245,7 +245,7 @@ Prerequisites: ${localMetadata.prerequisites}
                     type="text"
                     value={localMetadata.targetAudience || ''}
                     onChange={(e) => setLocalMetadata({ ...localMetadata, targetAudience: e.target.value })}
-                    className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3 text-sm text-zinc-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium"
+                    className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3 text-sm text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-900/10 focus:border-zinc-900 transition-all font-medium"
                   />
                 </div>
                 
@@ -257,7 +257,7 @@ Prerequisites: ${localMetadata.prerequisites}
                     type="text"
                     value={localMetadata.tone || ''}
                     onChange={(e) => setLocalMetadata({ ...localMetadata, tone: e.target.value })}
-                    className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3 text-sm text-zinc-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium"
+                    className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3 text-sm text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-900/10 focus:border-zinc-900 transition-all font-medium"
                   />
                 </div>
                 
@@ -269,7 +269,7 @@ Prerequisites: ${localMetadata.prerequisites}
                     type="text"
                     value={localMetadata.prerequisites || ''}
                     onChange={(e) => setLocalMetadata({ ...localMetadata, prerequisites: e.target.value })}
-                    className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3 text-sm text-zinc-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium"
+                    className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3 text-sm text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-900/10 focus:border-zinc-900 transition-all font-medium"
                   />
                 </div>
               </div>
