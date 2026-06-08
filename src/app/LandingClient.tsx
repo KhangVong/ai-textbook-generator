@@ -227,7 +227,7 @@ export const LandingClient = ({ userId }: { userId: string | null }) => {
           <div className="flex space-x-6">
             <a href="#" className="hover:text-zinc-950 transition-colors">Privacy Policy</a>
             <a href="#" className="hover:text-zinc-950 transition-colors">Terms of Service</a>
-            <a href="https://github.com/github/spec-kit" target="_blank" className="hover:text-zinc-950 transition-colors flex items-center">
+            <a href="https://github.com/KhangVong/ai-textbook-generator" target="_blank" className="hover:text-zinc-950 transition-colors flex items-center">
               GitHub <ArrowUpRight className="w-3 h-3 ml-1" />
             </a>
           </div>
