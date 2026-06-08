@@ -66,7 +66,7 @@ export const useGenerationEngine = () => {
             baseURL,
             modelName
           }),
-          signal: abortControllerRef.current.signal
+          signal: abortControllerRef.current?.signal
         });
 
         if (!generateRes.ok) throw new Error('Failed to create generation job');
