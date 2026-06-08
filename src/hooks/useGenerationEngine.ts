@@ -58,9 +58,9 @@ export const useGenerationEngine = () => {
             method: 'POST',
             headers: { 
               'Content-Type': 'application/json',
-              'X-OpenAI-Key': apiKey,
-              'X-Base-URL': baseURL,
-              'X-Model-Name': modelName
+              'X-OpenAI-Key': apiKey || '',
+              'X-Base-URL': baseURL || '',
+              'X-Model-Name': modelName || ''
             },
             body: JSON.stringify({ 
               type: 'generate_chapter',
