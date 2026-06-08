@@ -101,7 +101,29 @@ Prerequisites: ${localMetadata.prerequisites}
         throw new Error(`Failed to generate outline: ${errText}`);
       }
 
-      const responseText = await response.text();
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+      let responseText = '';
+      if (reader) {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          const chunk = decoder.decode(value, { stream: true });
+          const lines = chunk.split('\n');
+          for (const line of lines) {
+            if (line.startsWith('data: ') && line !== 'data: [DONE]') {
+              try {
+                const parsed = JSON.parse(line.slice(6));
+                if (parsed.choices?.[0]?.delta?.content) {
+                  responseText += parsed.choices[0].delta.content;
+                }
+              } catch (e) {
+                // Ignore partial JSON lines
+              }
+            }
+          }
+        }
+      }
 
       let data;
       try {

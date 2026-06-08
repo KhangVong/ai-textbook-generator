@@ -64,7 +64,7 @@ Do not include any markdown formatting, backticks, or explanation. Ensure all ar
           model: modelName,
           messages,
           temperature: 0.1,
-          stream: false,
+          stream: true,
           max_tokens: 8000,
           response_format: { type: "json_object" }
         })
@@ -75,11 +75,8 @@ Do not include any markdown formatting, backticks, or explanation. Ensure all ar
         throw new Error(`Outline API Error: ${err}`);
       }
 
-      const data = await res.json();
-      const content = data.choices[0].message.content;
-
-      // We send it back as plain text so the frontend handles it the exact same way it did before
-      return new Response(content, { headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
+      // Proxy the SSE stream directly back to the client to bypass Vercel timeout
+      return new Response(res.body, { headers: { 'Content-Type': 'text/event-stream' } });
     }
     if (type === 'generate_chapter') {
       const { targetAudience, tone, outlineContext } = body;
