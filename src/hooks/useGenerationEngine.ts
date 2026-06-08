@@ -78,9 +78,8 @@ export const useGenerationEngine = () => {
           if (abortControllerRef.current?.signal.aborted) break;
           
           await new Promise(r => setTimeout(r, 2000)); // Poll every 2s
-          
           const pollRes = await fetch(`/api/jobs/${jobId}`, {
-            signal: abortControllerRef.current.signal
+            signal: abortControllerRef.current?.signal
           });
           
           if (!pollRes.ok) throw new Error('Failed to poll job status');
