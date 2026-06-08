@@ -42,31 +42,39 @@ export const useGenerationEngine = () => {
       
     let completed = 0;
     let hasError = false;
+    
+    const concurrencyLimit = 3;
+    const activePromises = new Set<Promise<void>>();
 
     for (const node of nodesToGenerate) {
       if (abortControllerRef.current?.signal.aborted) break;
-      
-      try {
-        updateNodeContent(node.id, `> **⏳ 初始化后台作业...**\n\n`);
-        
-        // 1. Create Job
-        const currentState = useTextbookStore.getState();
-        const generateRes = await fetch('/api/generate', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            topic: node.title, 
-            outlineContext: allNodes.map(n => n.title),
-            metadata: currentState.metadata,
+
+      const p = (async () => {
+        try {
+          updateNodeContent(node.id, `> **⏳ 大模型极速撰写正文中 (Single-Pass)...**\n\n`);
+          
+          // 1. Create Job & Run Generation via Heartbeat
+          const currentState = useTextbookStore.getState();
+          const generateRes = await fetch('/api/generate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+              topic: node.title, 
+              outlineContext: allNodes.map(n => n.title),
+              metadata: currentState.metadata,
             apiKey,
             baseURL,
             modelName
           }),
-          signal: abortControllerRef.current.signal
+          signal: abortControllerRef.current?.signal
         });
 
         if (!generateRes.ok) throw new Error('Failed to create generation job');
-        const { jobId } = await generateRes.json();
+        const data = await generateRes.json();
+        if (data.error) throw new Error(data.error);
+        const jobId = data.jobId;
+
+        if (!jobId) throw new Error('No job ID returned');
 
         // 2. Poll Job Status
         let isDone = false;
@@ -74,9 +82,8 @@ export const useGenerationEngine = () => {
           if (abortControllerRef.current?.signal.aborted) break;
           
           await new Promise(r => setTimeout(r, 2000)); // Poll every 2s
-          
           const pollRes = await fetch(`/api/jobs/${jobId}`, {
-            signal: abortControllerRef.current.signal
+            signal: abortControllerRef.current?.signal
           });
           
           if (!pollRes.ok) throw new Error('Failed to poll job status');
@@ -93,39 +100,44 @@ export const useGenerationEngine = () => {
             // Update UI with current status
             const statusMap: any = {
               'PENDING': '等待调度...',
-              'RESEARCHING': '正在检索全网最新资料 (RAG)...',
-              'PROFILING': '正在生成本章的强制标准与大纲 (Blueprint)...',
-              'DRAFTING': '正在结构化撰写正文与公式排版...',
-              'VERIFYING': 'Quality-Checker 正在严格把关字数与格式...'
+              'DRAFTING': '大模型极速撰写正文中 (Single-Pass)...',
+              'COMPLETED': '完成'
             };
             const friendlyStatus = statusMap[job.status] || job.status;
             updateNodeContent(node.id, `> **⏳ 后台流水线执行中: ${friendlyStatus}**\n\n`);
           }
         }
         
-      } catch (err: any) {
-        if (err.name === 'AbortError' || err.message.includes('aborted')) {
-          console.log('Generation aborted by user.');
-          break;
+        } catch (err: any) {
+          if (err.name === 'AbortError' || err.message.includes('aborted')) {
+            console.log('Generation aborted by user.');
+          } else {
+            console.error(`Error generating content for ${node.title}:`, err);
+            updateNodeContent(node.id, `> ❌ 生成失败: ${err.message}`);
+            hasError = true;
+          }
         }
-        console.error(`Error generating content for ${node.title}:`, err);
-        updateNodeContent(node.id, `> ❌ 生成失败: ${err.message}`);
-        hasError = true;
-        break;
-      }
+        const currentStateAfter = useTextbookStore.getState();
+        if (currentStateAfter.activeProjectId) {
+          await fetch(`/api/projects/${currentStateAfter.activeProjectId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ outline_data: currentStateAfter.outline })
+          }).catch(err => console.error('Failed to sync to database:', err));
+        }
+        
+        completed++;
+        setProgress(Math.round((completed / nodesToGenerate.length) * 100));
+      })().finally(() => activePromises.delete(p));
+
+      activePromises.add(p);
       
-      const currentState = useTextbookStore.getState();
-      if (currentState.activeProjectId) {
-        await fetch(`/api/projects/${currentState.activeProjectId}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ outline_data: currentState.outline })
-        }).catch(err => console.error('Failed to sync to database:', err));
+      if (activePromises.size >= concurrencyLimit) {
+        await Promise.race(activePromises);
       }
-      
-      completed++;
-      setProgress(Math.round((completed / nodesToGenerate.length) * 100));
     }
+    
+    await Promise.all(activePromises);
 
     if (abortControllerRef.current) abortControllerRef.current = null;
     setIsGenerating(false);
