@@ -97,10 +97,8 @@ export const useGenerationEngine = () => {
             // Update UI with current status
             const statusMap: any = {
               'PENDING': '等待调度...',
-              'RESEARCHING': '正在检索全网最新资料 (RAG)...',
-              'PROFILING': '正在生成本章的强制标准与大纲 (Blueprint)...',
-              'DRAFTING': '正在结构化撰写正文与公式排版...',
-              'VERIFYING': 'Quality-Checker 正在严格把关字数与格式...'
+              'DRAFTING': '大模型极速撰写正文中 (Single-Pass)...',
+              'COMPLETED': '完成'
             };
             const friendlyStatus = statusMap[job.status] || job.status;
             updateNodeContent(node.id, `> **⏳ 后台流水线执行中: ${friendlyStatus}**\n\n`);
