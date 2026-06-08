@@ -26,12 +26,6 @@ export const useGenerationEngine = () => {
   }, [setStatus]);
 
   const generateContent = useCallback(async (targetedNodeId?: string) => {
-    const isCustomUrl = baseURL && !baseURL.includes('api.openai.com');
-    if (!apiKey && !isCustomUrl) {
-      alert("Please configure your API Key in the Settings (bottom left) first.");
-      return;
-    }
-    
     if (!outline.length) {
       alert("Outline is empty. Please go back and generate an outline first.");
       return;
@@ -39,7 +33,6 @@ export const useGenerationEngine = () => {
     
     setIsGenerating(true);
     setStatus('GENERATING_CHAPTERS');
-    
     abortControllerRef.current = new AbortController();
     
     const allNodes = flattenNodes(outline);
@@ -51,96 +44,70 @@ export const useGenerationEngine = () => {
     let hasError = false;
 
     for (const node of nodesToGenerate) {
-      if (abortControllerRef.current?.signal.aborted) {
-        break;
-      }
+      if (abortControllerRef.current?.signal.aborted) break;
       
-      updateNodeContent(node.id, '');
-      let fullText = '';
-
       try {
-        const { enableQuizzes, googleApiKey, googleCx } = useTextbookStore.getState();
-        const baseHeaders = {
-          'Content-Type': 'application/json',
-          'X-OpenAI-Key': apiKey || '',
-          'X-Base-URL': baseURL,
-          'X-Model-Name': modelName,
-          'X-Enable-Quizzes': enableQuizzes ? 'true' : 'false',
-          'X-Google-Key': googleApiKey || '',
-          'X-Google-Cx': googleCx || '',
-        };
-
-        // Function Calling Mode
-        updateNodeContent(node.id, `> **⏳ 👑 主笔正在构思和撰写章节内容...**\n\n`);
+        updateNodeContent(node.id, `> **⏳ 初始化后台作业...**\n\n`);
         
-        // Strip full text content from outline to save tokens
-        const cleanOutline = outline.map(n => {
-          const cleanNode = (nData: any): any => ({
-            id: nData.id,
-            title: nData.title,
-            level: nData.level,
-            children: nData.children ? nData.children.map(cleanNode) : []
-          });
-          return cleanNode(n);
-        });
-
-        const currentState = useTextbookStore.getState();
-        const { targetAudience, tone } = currentState.metadata || {};
-
-        const generateRes = await fetch('/api/chat', {
+        // 1. Create Job
+        const generateRes = await fetch('/api/generate', {
           method: 'POST',
-          headers: baseHeaders,
-          body: JSON.stringify({
-            type: 'generate_chapter',
-            prompt: node.title,
-            targetAudience: targetAudience || 'undergraduate level',
-            tone: tone || 'comprehensive and rigorous',
-            outlineContext: cleanOutline,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            topic: node.title, 
+            outlineContext: [],
+            apiKey,
+            baseURL,
+            modelName
           }),
           signal: abortControllerRef.current.signal
         });
 
-        if (!generateRes.ok) throw new Error('Generate chapter failed');
-        if (!generateRes.body) throw new Error('No body returned from server');
+        if (!generateRes.ok) throw new Error('Failed to create generation job');
+        const { jobId } = await generateRes.json();
 
-        const reader = generateRes.body.getReader();
-        const decoder = new TextDecoder();
-
-        while (true) {
+        // 2. Poll Job Status
+        let isDone = false;
+        while (!isDone) {
           if (abortControllerRef.current?.signal.aborted) break;
-          const { done, value } = await reader.read();
-          if (done) break;
           
-          const chunkStr = decoder.decode(value, { stream: true });
-          fullText += chunkStr;
+          await new Promise(r => setTimeout(r, 2000)); // Poll every 2s
           
-          // Format fallback for LaTeX
-          const displayFormat = fullText
-            .replace(/\\\(/g, '$')
-            .replace(/\\\)/g, '$')
-            .replace(/\\\[/g, '$$$$')
-            .replace(/\\\]/g, '$$$$');
-            
-          updateNodeContent(node.id, `> **⏳ 👑 主笔正在构思和撰写章节内容...**\n\n${displayFormat}`);
+          const pollRes = await fetch(`/api/jobs/${jobId}`, {
+            signal: abortControllerRef.current.signal
+          });
+          
+          if (!pollRes.ok) throw new Error('Failed to poll job status');
+          const job = await pollRes.json();
+
+          if (job.status === 'FAILED') {
+            throw new Error(job.error_message || 'Background job failed');
+          }
+
+          if (job.status === 'COMPLETED') {
+            updateNodeContent(node.id, job.markdown_result);
+            isDone = true;
+          } else {
+            // Update UI with current status
+            const statusMap: any = {
+              'PENDING': '等待调度...',
+              'RESEARCHING': '正在检索全网最新资料 (RAG)...',
+              'PROFILING': '正在生成本章的强制标准与大纲 (Blueprint)...',
+              'DRAFTING': '正在结构化撰写正文与公式排版...',
+              'VERIFYING': 'Quality-Checker 正在严格把关字数与格式...'
+            };
+            const friendlyStatus = statusMap[job.status] || job.status;
+            updateNodeContent(node.id, `> **⏳ 后台流水线执行中: ${friendlyStatus}**\n\n请耐心等待，我们正在保证内容的绝对准确。`);
+          }
         }
         
-        fullText = fullText
-          .replace(/\\\(/g, '$')
-          .replace(/\\\)/g, '$')
-          .replace(/\\\[/g, '$$$$')
-          .replace(/\\\]/g, '$$$$');
-          
-        fullText += '\n\n';
-        
-        // Finalize
-        updateNodeContent(node.id, fullText);
       } catch (err: any) {
         if (err.name === 'AbortError' || err.message.includes('aborted')) {
           console.log('Generation aborted by user.');
           break;
         }
         console.error(`Error generating content for ${node.title}:`, err);
-        alert(`Failed to generate content for "${node.title}". Error: ${err.message}`);
+        updateNodeContent(node.id, `> ❌ 生成失败: ${err.message}`);
         hasError = true;
         break;
       }
@@ -158,18 +125,10 @@ export const useGenerationEngine = () => {
       setProgress(Math.round((completed / nodesToGenerate.length) * 100));
     }
 
-    if (abortControllerRef.current) {
-      abortControllerRef.current = null;
-    }
-    
+    if (abortControllerRef.current) abortControllerRef.current = null;
     setIsGenerating(false);
     setStatus(hasError ? 'EDITING_OUTLINE' : 'COMPLETE');
-  }, [outline, apiKey, baseURL, modelName, updateNodeContent, setStatus]);
+  }, [outline, updateNodeContent, setStatus]);
 
-  return {
-    generateContent,
-    stopGeneration,
-    isGenerating,
-    progress
-  };
+  return { generateContent, stopGeneration, isGenerating, progress };
 };

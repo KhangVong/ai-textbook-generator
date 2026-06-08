@@ -8,7 +8,7 @@ import remarkMath from 'remark-math';
 import remarkGfm from 'remark-gfm';
 import rehypeKatex from 'rehype-katex';
 
-import { Loader2, Play, Lock, Unlock, Edit3, Trash2, ZoomIn, ZoomOut, Settings, Plus, BookOpen } from 'lucide-react';
+import { Loader2, Play, Lock, Unlock, Edit3, Trash2, ZoomIn, ZoomOut, Settings, Plus, BookOpen, Download } from 'lucide-react';
 import { MermaidDiagram } from '@/components/ui/MermaidDiagram';
 import { JsonChart } from '@/components/ui/JsonChart';
 import { PythonChart } from '@/components/ui/PythonChart';
@@ -58,6 +58,31 @@ export const ReadView = () => {
       updateNodeTitle(id, localTitle.trim());
     }
     setEditingTitleId(null);
+  };
+
+  const handleExport = (format: 'md' | 'html') => {
+    if (!activeNode || !activeNode.content) return;
+    
+    let content = activeNode.content;
+    let mimeType = 'text/markdown';
+    let extension = 'md';
+    
+    if (format === 'html') {
+      // Basic HTML wrapper (in a real app, we'd use marked.js to convert the MD to HTML first)
+      content = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${activeNode.title}</title><style>body{font-family:sans-serif;line-height:1.6;max-width:800px;margin:40px auto;padding:0 20px}</style></head><body><pre style="white-space:pre-wrap;font-family:inherit;">${activeNode.content}</pre></body></html>`;
+      mimeType = 'text/html';
+      extension = 'html';
+    }
+
+    const blob = new Blob([content], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${activeNode.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.${extension}`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
   return (
@@ -179,7 +204,12 @@ export const ReadView = () => {
                 <h1 className="text-4xl tracking-tight m-0 font-serif font-normal text-balance">
                   {activeNode.title}
                 </h1>
-                <div className="flex items-center space-x-2 bg-secondary/40 rounded-lg p-0.5 border border-border">
+                <div className="flex items-center space-x-1 bg-secondary/40 rounded-lg p-0.5 border border-border print:hidden">
+                  <div className="flex items-center mr-2 pr-2 border-r border-border/50">
+                    <button onClick={() => handleExport('md')} className="px-2 py-1.5 text-[10px] font-medium hover:bg-card rounded transition-colors text-muted-foreground hover:text-foreground">MD</button>
+                    <button onClick={() => handleExport('html')} className="px-2 py-1.5 text-[10px] font-medium hover:bg-card rounded transition-colors text-muted-foreground hover:text-foreground">HTML</button>
+                    <button onClick={() => window.print()} className="px-2 py-1.5 text-[10px] font-medium hover:bg-card rounded transition-colors text-muted-foreground hover:text-foreground flex items-center"><Download className="w-3 h-3 mr-1" /> PDF</button>
+                  </div>
                   <button onClick={() => setZoomLevel(Math.max(0.8, zoomLevel - 0.1))} className="p-1.5 hover:bg-card rounded transition-colors text-muted-foreground hover:text-foreground">
                     <ZoomOut className="w-3.5 h-3.5" />
                   </button>
