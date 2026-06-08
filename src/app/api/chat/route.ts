@@ -54,7 +54,6 @@ Do not include any markdown formatting, backticks, or explanation. Ensure all ar
         system: systemPrompt,
         prompt: prompt,
         temperature: 0.1,
-        maxTokens: 8000,
       });
 
       return new Response(result.textStream, { 
