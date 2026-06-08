@@ -60,7 +60,10 @@ FORMATTING RULES (PURE MARKDOWN):
       prompt: `Write the textbook section for: "${topic}"\n\nEnsure you strictly follow the Tone (${metadata?.tone}) and Audience (${metadata?.targetAudience}) profile.`,
     });
 
-    const finalMarkdown = draftRes.text.trim();
+    let finalMarkdown = draftRes.text.trim();
+    
+    // Failsafe: Strip leading H1 title if the LLM stubbornly generated it anyway
+    finalMarkdown = finalMarkdown.replace(/^#\s+[^\n]+\n+/, '');
 
     // ==========================================
     // STAGE: COMPLETED
