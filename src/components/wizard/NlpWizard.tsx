@@ -177,7 +177,7 @@ Prerequisites: ${localMetadata.prerequisites}
               exit={{ opacity: 0 }}
               className="absolute inset-0 z-10 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center p-8 text-center"
             >
-              <Loader2 className="w-6 h-6 animate-spin text-blue-600 mb-4" />
+              <Loader2 className="w-6 h-6 animate-spin text-zinc-900 mb-4" />
               <span className="text-sm font-medium text-zinc-700">
                 {step === 'INPUT' ? 'Agent 1: Profiling target parameters...' : 'Agent 2: Architect is structuring the curriculum...'}
               </span>
@@ -209,7 +209,7 @@ Prerequisites: ${localMetadata.prerequisites}
                 disabled={isLoading || !prompt.trim()}
                 className={cn(
                   "mt-2 sm:mt-0 mr-2 shrink-0 flex items-center justify-center w-full sm:w-12 h-12 rounded-xl text-white transition-all duration-200",
-                  prompt.trim() ? "bg-blue-600 hover:bg-blue-700 hover:scale-105 shadow-md shadow-blue-600/20" : "bg-zinc-200 text-zinc-400 cursor-not-allowed"
+                  prompt.trim() ? "bg-zinc-900 hover:bg-zinc-800 hover:scale-[1.02] text-white shadow-md shadow-zinc-900/10" : "bg-zinc-200 text-zinc-400 cursor-not-allowed"
                 )}
               >
                 <ArrowRight className="w-5 h-5" />
@@ -225,7 +225,7 @@ Prerequisites: ${localMetadata.prerequisites}
             >
               <div className="flex items-center justify-between border-b border-zinc-100 pb-4">
                 <h3 className="font-bold text-zinc-900 flex items-center">
-                  <UserCircle className="w-5 h-5 mr-2 text-blue-500" />
+                  <UserCircle className="w-5 h-5 mr-2 text-zinc-500" />
                   Curriculum Persona
                 </h3>
                 <button 

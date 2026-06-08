@@ -128,7 +128,7 @@ export const ReadView = () => {
                       onChange={(e) => setLocalTitle(e.target.value)}
                       onBlur={(e) => handleTitleEditSave(e, node.id)}
                       onKeyDown={(e) => handleTitleEditSave(e, node.id)}
-                      className="bg-white border border-blue-500 px-2 py-0.5 rounded text-sm w-full text-zinc-900 focus:outline-none shadow-sm"
+                      className="bg-white border border-zinc-300 focus:border-zinc-900 focus:ring-1 focus:ring-zinc-900 px-2 py-0.5 rounded text-sm w-full text-zinc-900 focus:outline-none shadow-sm transition-all"
                     />
                   ) : (
                     <span 
@@ -163,7 +163,7 @@ export const ReadView = () => {
                   {!hasContent && !isGenerating && (
                     <button 
                       onClick={(e) => handleGenerateClick(e, node.id)}
-                      className="p-1 text-blue-600 hover:bg-blue-100 rounded"
+                      className="p-1 text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 rounded transition-colors"
                       title="Generate this section"
                     >
                       <Play className="w-3.5 h-3.5 fill-current" />
@@ -190,7 +190,7 @@ export const ReadView = () => {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3 }}
-              className="prose prose-zinc max-w-none prose-headings:font-bold prose-h1:text-4xl prose-h2:text-2xl prose-h3:text-xl prose-p:leading-relaxed prose-a:text-blue-600 prose-img:rounded-xl"
+              className="prose prose-zinc max-w-none prose-headings:font-bold prose-h1:text-4xl prose-h2:text-2xl prose-h3:text-xl prose-p:leading-relaxed prose-a:text-zinc-900 prose-a:underline prose-a:decoration-zinc-300 prose-a:underline-offset-4 prose-img:rounded-xl"
             >
               {/* Reader Header with Zoom Controls */}
               <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 pb-6 border-b border-zinc-100 gap-4">
@@ -213,7 +213,7 @@ export const ReadView = () => {
                 <div className="flex flex-col items-center justify-center py-20 px-8 border-2 border-dashed border-zinc-200 rounded-2xl bg-zinc-50">
                   {isGenerating ? (
                     <>
-                      <Loader2 className="w-8 h-8 animate-spin text-blue-600 mb-4" />
+                      <Loader2 className="w-8 h-8 animate-spin text-zinc-400 mb-4" />
                       <p className="text-sm text-zinc-600 font-medium">Generating premium content for this section...</p>
                     </>
                   ) : (
@@ -280,7 +280,7 @@ export const ReadView = () => {
                       },
                       blockquote({ children }) {
                         return (
-                          <blockquote className="border-l-4 border-blue-500 bg-blue-50/50 px-6 py-4 rounded-r-xl italic my-8 text-zinc-700 font-medium">
+                          <blockquote className="border-l-4 border-zinc-800 bg-zinc-50/50 px-6 py-4 rounded-r-xl italic my-8 text-zinc-700 font-medium">
                             {children}
                           </blockquote>
                         );

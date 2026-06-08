@@ -75,7 +75,7 @@ export const MindmapView = () => {
             target: node.id,
             type: 'smoothstep',
             animated: true,
-            style: { stroke: '#2563eb', strokeWidth: 2 } // blue-600
+            style: { stroke: '#18181b', strokeWidth: 2 } // zinc-900
           });
         }
         

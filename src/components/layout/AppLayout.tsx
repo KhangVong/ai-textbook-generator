@@ -18,7 +18,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
   const isIdle = status === 'IDLE';
 
   return (
-    <div className="flex flex-col h-screen w-screen overflow-hidden bg-white text-zinc-900 font-sans selection:bg-blue-500/20">
+    <div className="flex flex-col h-screen w-screen overflow-hidden bg-white text-zinc-900 font-sans selection:bg-zinc-200/50">
       {/* SaaS Style Top Navigation */}
       <header className="h-14 border-b border-zinc-200 bg-white flex items-center px-4 md:px-6 shrink-0 justify-between z-20">
         
@@ -88,7 +88,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
 
           {isGenerating && (
             <div className="flex items-center space-x-2">
-              <div className="flex items-center text-xs font-medium text-blue-600 bg-blue-50 px-3 py-1.5 rounded-md border border-blue-100">
+              <div className="flex items-center text-xs font-medium text-zinc-600 bg-zinc-50 px-3 py-1.5 rounded-md border border-zinc-200">
                 <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
                 {progress}%
               </div>
