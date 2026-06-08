@@ -53,56 +53,40 @@ export const useGenerationEngine = () => {
         try {
           updateNodeContent(node.id, `> **⏳ 初始化后台作业...**\n\n`);
           
-          // 1. Create Job
+          // 1. Direct Stream Generation
           const currentState = useTextbookStore.getState();
-          const generateRes = await fetch('/api/generate', {
+          const generateRes = await fetch('/api/generate-stream', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
               topic: node.title, 
               outlineContext: allNodes.map(n => n.title),
               metadata: currentState.metadata,
-            apiKey,
-            baseURL,
-            modelName
-          }),
-          signal: abortControllerRef.current?.signal
-        });
-
-        if (!generateRes.ok) throw new Error('Failed to create generation job');
-        const { jobId } = await generateRes.json();
-
-        // 2. Poll Job Status
-        let isDone = false;
-        while (!isDone) {
-          if (abortControllerRef.current?.signal.aborted) break;
-          
-          await new Promise(r => setTimeout(r, 2000)); // Poll every 2s
-          const pollRes = await fetch(`/api/jobs/${jobId}`, {
+              apiKey,
+              baseURL,
+              modelName
+            }),
             signal: abortControllerRef.current?.signal
           });
+
+          if (!generateRes.ok || !generateRes.body) throw new Error('Failed to start stream');
           
-          if (!pollRes.ok) throw new Error('Failed to poll job status');
-          const job = await pollRes.json();
-
-          if (job.status === 'FAILED') {
-            throw new Error(job.error_message || 'Background job failed');
+          const reader = generateRes.body.getReader();
+          const decoder = new TextDecoder();
+          let currentContent = '';
+          
+          while (true) {
+            if (abortControllerRef.current?.signal.aborted) {
+              reader.cancel();
+              break;
+            }
+            
+            const { done, value } = await reader.read();
+            if (done) break;
+            
+            currentContent += decoder.decode(value, { stream: true });
+            updateNodeContent(node.id, currentContent);
           }
-
-          if (job.status === 'COMPLETED') {
-            updateNodeContent(node.id, job.markdown_result);
-            isDone = true;
-          } else {
-            // Update UI with current status
-            const statusMap: any = {
-              'PENDING': '等待调度...',
-              'DRAFTING': '大模型极速撰写正文中 (Single-Pass)...',
-              'COMPLETED': '完成'
-            };
-            const friendlyStatus = statusMap[job.status] || job.status;
-            updateNodeContent(node.id, `> **⏳ 后台流水线执行中: ${friendlyStatus}**\n\n`);
-          }
-        }
         
         } catch (err: any) {
           if (err.name === 'AbortError' || err.message.includes('aborted')) {
