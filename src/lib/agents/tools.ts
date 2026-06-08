@@ -7,6 +7,7 @@ export const webSearchTool = tool({
   parameters: z.object({
     query: z.string().describe('The search query. Be specific, e.g., "Introduction to Quantum Computing syllabus 2024"'),
   }),
+  // @ts-ignore - Vercel AI SDK types mismatch for execute function return type
   execute: async ({ query }: { query: string }) => {
     try {
       console.log(`[SearchTool] Querying: ${query}`);

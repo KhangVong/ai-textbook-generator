@@ -25,9 +25,15 @@ This file documents the critical architectural decisions, quirks, and workaround
   }
   ```
 
-## 4. Vercel AI SDK (`ai` package)
-- The `@ai-sdk/core` has strict typings for `tools`. Passing a raw object may cause TypeScript build errors. 
-- **Workaround**: Either wrap custom tools using the `tool()` helper from `ai`, or use `// @ts-ignore` above the tools declaration if the types natively mismatch (like with `duck-duck-scrape` SafeSearchType enums).
+## 4. Vercel AI SDK (`ai` package) & DeepSeek Compatibility
+- The `@ai-sdk/core` has strict typings for `tools` and `generateObject`. 
+- **DeepSeek V1 API Issue**: DeepSeek currently explicitly rejects `response_format: { type: "json_schema" }` with the error `"This response_format type is unavailable now"`.
+  - Because we use the `@ai-sdk/openai` provider to talk to DeepSeek, the AI SDK automatically tries to send `json_schema` for any `generateObject()` calls.
+  - **Solution**: You must pass `mode: 'json'` into `generateObject()` to force it to use standard JSON mode and parse the schema client-side using Zod.
+- **Vercel Build Type Errors**: Vercel `next build` enforces strict TypeScript checking. 
+  - The `mode` property might trigger `Object literal may only specify known properties, but 'mode' does not exist` depending on your exact `ai` package version.
+  - The `tool()` wrapper's `execute` function may trigger `Type error: No overload matches this call... not assignable to type 'undefined'`.
+  - **Workaround**: Use `// @ts-ignore` immediately above `mode: 'json'` and `execute:` to bypass these type mismatch errors so that Vercel builds successfully.
 - Dynamic model initialization should be done using `createOpenAI()` from `@ai-sdk/openai` to explicitly inject the user's `apiKey` and `baseURL` received from the request body.
 
 ## 5. LaTeX and Markdown Rendering

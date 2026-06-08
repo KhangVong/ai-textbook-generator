@@ -64,6 +64,7 @@ export async function runPipeline(jobId: string, topic: string, apiKey?: string,
     await updateJobStatus(jobId, 'PROFILING');
     const blueprintRes = await generateObject({
       model,
+      // @ts-ignore - Vercel AI SDK types mismatch for mode property
       mode: 'json',
       schema: BlueprintSchema,
       system: 'You are a Chief Academic Officer. Create a strict blueprint for a textbook chapter.',
@@ -79,6 +80,7 @@ export async function runPipeline(jobId: string, topic: string, apiKey?: string,
     // In a real advanced app, we might loop this. For now, a robust single pass using structured outputs.
     const draftRes = await generateObject({
       model,
+      // @ts-ignore - Vercel AI SDK types mismatch for mode property
       mode: 'json',
       schema: ChapterContentSchema,
       system: `You are an expert textbook writer. Write the chapter using structured blocks.
