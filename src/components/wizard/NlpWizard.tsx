@@ -101,16 +101,7 @@ Prerequisites: ${localMetadata.prerequisites}
         throw new Error(`Failed to generate outline: ${errText}`);
       }
 
-      const reader = response.body?.getReader();
-      const decoder = new TextDecoder();
-      let responseText = '';
-      if (reader) {
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          responseText += decoder.decode(value, { stream: true });
-        }
-      }
+      const responseText = await response.text();
 
       let data;
       try {

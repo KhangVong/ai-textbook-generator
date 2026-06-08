@@ -35,7 +35,7 @@ export async function POST(req: Request) {
     if (type === 'generate_outline') {
       const systemPrompt = `You are an expert curriculum designer and AI professor. 
 Based on the user's request, create a highly structured, comprehensive textbook outline.
-The outline should be deeply nested (level 1 = chapters, level 2 = sections, level 3 = sub-sections, etc.).
+CRITICAL: The outline MUST ONLY include Chapters (level 1) and Sections (level 2). Do NOT generate level 3 sub-sections or deeper to keep the outline concise.
 Ensure each node has a unique 'id' (a short descriptive string without spaces, like 'chap1-intro').
 Return ONLY a valid JSON object matching this exact structure:
 {
@@ -49,19 +49,15 @@ Return ONLY a valid JSON object matching this exact structure:
 }
 Do not include any markdown formatting, backticks, or explanation. Ensure all array elements are properly wrapped in curly braces.`;
       
-      const result = await streamText({
+      const result = await generateText({
         model: openai.chat(modelName),
         system: systemPrompt,
         prompt: prompt,
         temperature: 0.1,
       });
 
-      return new Response(result.textStream, { 
-        headers: { 
-          'Content-Type': 'text/plain; charset=utf-8',
-          'Cache-Control': 'no-cache',
-          'Connection': 'keep-alive'
-        } 
+      return new Response(result.text, { 
+        headers: { 'Content-Type': 'application/json' } 
       });
     }
     if (type === 'generate_chapter') {
