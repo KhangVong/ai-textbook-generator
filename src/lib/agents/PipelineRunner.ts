@@ -108,12 +108,14 @@ You MUST strictly follow this blueprint:
 ${outlineString}
 
 CRITICAL RULES FOR CONTENT:
-1. DO NOT generate the section title at the top (e.g. # ${topic}). The frontend already renders the title. Start directly with the content.
-2. For inline math, you MUST ONLY use $...$. Do NOT use \\(...\\).
-3. For block equations, you MUST ONLY use $$...$$. Do NOT use \\[...\\] or markdown code blocks for equations.
-4. Strictly maintain the professional depth and adhere to the target word count (${blueprint.targetWordCount} words) to ensure consistency across chapters.
-5. You MUST include a "Conclusion" or "Summary" section at the end of the content.
-6. You MAY include a "Recommended Reading" or "References" section at the very end if applicable.
+1. DO NOT generate the main chapter title at the top (e.g. # ${topic}). The frontend already renders it.
+2. Structure your content clearly using Markdown sub-headings (## and ###). Every logical part of your explanation MUST have a sub-heading.
+3. The final sub-heading MUST be exactly "Conclusion" (or its translation in the target language), summarizing the chapter.
+4. DO NOT include any "Exercises" or "Homework" sections.
+5. For inline math, you MUST ONLY use $...$. Do NOT use \\(...\\).
+6. For block equations, you MUST ONLY use $$...$$. Do NOT use \\[...\\] or markdown code blocks for equations.
+7. Strictly maintain professional depth and adhere to the target word count (~${blueprint.targetWordCount} words) to ensure consistency.
+8. You MAY include a "Recommended Reading" or "References" section after the Conclusion if applicable.
 
 Return ONLY a valid JSON object matching this exact schema:
 {
