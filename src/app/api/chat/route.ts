@@ -49,34 +49,21 @@ Return ONLY a valid JSON object matching this exact structure:
 }
 Do not include any markdown formatting, backticks, or explanation. Ensure all array elements are properly wrapped in curly braces.`;
       
-      const messages = [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: prompt }
-      ];
-
-      const res = await fetch(`${baseURL}/chat/completions`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey || 'dummy'}`
-        },
-        body: JSON.stringify({
-          model: modelName,
-          messages,
-          temperature: 0.1,
-          stream: true,
-          max_tokens: 8000,
-          response_format: { type: "json_object" }
-        })
+      const result = await streamText({
+        model: openai.chat(modelName),
+        system: systemPrompt,
+        prompt: prompt,
+        temperature: 0.1,
+        maxTokens: 8000,
       });
 
-      if (!res.ok) {
-        const err = await res.text();
-        throw new Error(`Outline API Error: ${err}`);
-      }
-
-      // Proxy the SSE stream directly back to the client to bypass Vercel timeout
-      return new Response(res.body, { headers: { 'Content-Type': 'text/event-stream' } });
+      return new Response(result.textStream, { 
+        headers: { 
+          'Content-Type': 'text/plain; charset=utf-8',
+          'Cache-Control': 'no-cache',
+          'Connection': 'keep-alive'
+        } 
+      });
     }
     if (type === 'generate_chapter') {
       const { targetAudience, tone, outlineContext } = body;
