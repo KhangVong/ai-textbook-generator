@@ -48,22 +48,17 @@ export async function runPipeline(jobId: string, topic: string, outlineContext: 
     const outlineString = outlineContext?.length > 0 ? `The book contains the following chapters/sections in order:\n- ${outlineContext.join('\n- ')}\n\nYou are currently writing the section: "${topic}". Do NOT generate content that belongs to other sections.` : '';
 
     // ==========================================
-    // STAGE 1: RESEARCHING (Web Search)
+    // STAGE 1 & 2: RESEARCHING AND PROFILING
     // ==========================================
-    await updateJobStatus(jobId, 'RESEARCHING');
-    const researchCtx = await generateText({
+    await updateJobStatus(jobId, 'RESEARCHING & PROFILING');
+    
+    const researchPromise = generateText({
       model,
       system: `You are an academic researcher. Search for the latest and most accurate syllabus, facts, or breakthroughs on the given topic. Return a concise summary of facts in ${languageContext}. \n\n${outlineString}`,
       prompt: `Topic: ${topic}`,
     });
 
-    const contextDocs = researchCtx.text;
-
-    // ==========================================
-    // STAGE 2: PROFILING (Generate Blueprint)
-    // ==========================================
-    await updateJobStatus(jobId, 'PROFILING');
-    const blueprintRes = await generateText({
+    const blueprintPromise = generateText({
       model,
       system: `You are a Chief Academic Officer. Create a strict blueprint for a textbook chapter.
 Return ONLY a valid JSON object matching this schema:
@@ -74,9 +69,13 @@ Return ONLY a valid JSON object matching this schema:
   "recommendedTone": "string"
 }
 Do not include any markdown formatting like \`\`\`json or explanations.`,
-      prompt: `Topic: ${topic}\n\n${outlineString}\n\nResearch Context:\n${contextDocs}\n\nMetadata Profile: ${JSON.stringify(metadata)}`,
+      prompt: `Topic: ${topic}\n\n${outlineString}\n\nMetadata Profile: ${JSON.stringify(metadata)}`,
     });
+
+    const [researchCtx, blueprintRes] = await Promise.all([researchPromise, blueprintPromise]);
     
+    const contextDocs = researchCtx.text;
+
     let blueprintStr = blueprintRes.text.trim();
     if (blueprintStr.startsWith('```json')) blueprintStr = blueprintStr.replace(/^```json\n?/, '').replace(/\n?```$/, '');
     else if (blueprintStr.startsWith('```')) blueprintStr = blueprintStr.replace(/^```\n?/, '').replace(/\n?```$/, '');
@@ -88,7 +87,7 @@ Do not include any markdown formatting like \`\`\`json or explanations.`,
       blueprint = { title: topic, targetWordCount: 1500, requiredTopics: [], recommendedTone: 'Academic' };
     }
     
-    await updateJobStatus(jobId, 'PROFILING', { blueprint });
+    await updateJobStatus(jobId, 'DRAFTING', { blueprint });
 
     // ==========================================
     // STAGE 3: DRAFTING (Structured Output)
