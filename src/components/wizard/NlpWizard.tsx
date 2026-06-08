@@ -101,7 +101,16 @@ Prerequisites: ${localMetadata.prerequisites}
         throw new Error(`Failed to generate outline: ${errText}`);
       }
 
-      const responseText = await response.text();
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+      let responseText = '';
+      if (reader) {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          responseText += decoder.decode(value, { stream: true });
+        }
+      }
 
       let data;
       try {
@@ -113,7 +122,11 @@ Prerequisites: ${localMetadata.prerequisites}
         }
         data = JSON.parse(jsonStr);
       } catch (jsonErr) {
-        throw new Error(`Failed to parse AI response. Server returned: "${responseText.substring(0, 200)}"`);
+        throw new Error(`Failed to parse AI response. Server returned: "${responseText.trim().substring(0, 200)}"`);
+      }
+
+      if (data.error) {
+        throw new Error(data.error);
       }
       
       if (data.outline && Array.isArray(data.outline)) {

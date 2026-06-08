@@ -35,7 +35,7 @@ export async function POST(req: Request) {
     if (type === 'generate_outline') {
       const systemPrompt = `You are an expert curriculum designer and AI professor. 
 Based on the user's request, create a highly structured, comprehensive textbook outline.
-CRITICAL: The outline MUST ONLY include Chapters (level 1) and Sections (level 2). Do NOT generate level 3 sub-sections or deeper to keep the outline concise.
+The outline should be deeply nested (level 1 = chapters, level 2 = sections, level 3 = sub-sections, etc.).
 Ensure each node has a unique 'id' (a short descriptive string without spaces, like 'chap1-intro').
 Return ONLY a valid JSON object matching this exact structure:
 {
@@ -49,15 +49,63 @@ Return ONLY a valid JSON object matching this exact structure:
 }
 Do not include any markdown formatting, backticks, or explanation. Ensure all array elements are properly wrapped in curly braces.`;
       
-      const result = await generateText({
-        model: openai.chat(modelName),
-        system: systemPrompt,
-        prompt: prompt,
-        temperature: 0.1,
+      const stream = new ReadableStream({
+        async start(controller) {
+          const encoder = new TextEncoder();
+          
+          // Heartbeat every 5 seconds to bypass Vercel Edge Initial Byte Timeout
+          const interval = setInterval(() => {
+            controller.enqueue(encoder.encode(" "));
+          }, 5000);
+
+          try {
+            const res = await fetch(`${baseURL}/chat/completions`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${apiKey || 'dummy'}`
+              },
+              body: JSON.stringify({
+                model: modelName,
+                messages: [
+                  { role: 'system', content: systemPrompt },
+                  { role: 'user', content: prompt }
+                ],
+                temperature: 0.1,
+                stream: false, // Turn off proxy streaming to guarantee valid JSON
+                max_tokens: 8000,
+                response_format: { type: "json_object" }
+              })
+            });
+
+            clearInterval(interval);
+
+            if (!res.ok) {
+              const err = await res.text();
+              controller.enqueue(encoder.encode(`{"error": "API Error: ${err.replace(/"/g, '\\"')}"}`));
+              controller.close();
+              return;
+            }
+
+            const data = await res.json();
+            const content = data.choices[0].message.content;
+            
+            controller.enqueue(encoder.encode(content));
+            controller.close();
+          } catch (err: any) {
+            clearInterval(interval);
+            controller.enqueue(encoder.encode(`{"error": "Exception: ${err.message}"}`));
+            controller.close();
+          }
+        }
       });
 
-      return new Response(result.text, { 
-        headers: { 'Content-Type': 'application/json' } 
+      return new Response(stream, { 
+        headers: { 
+          'Content-Type': 'text/plain; charset=utf-8',
+          'Cache-Control': 'no-cache',
+          'Connection': 'keep-alive'
+        } 
       });
     }
     if (type === 'generate_chapter') {
