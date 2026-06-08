@@ -35,7 +35,7 @@ export async function POST(req: Request) {
     if (type === 'generate_outline') {
       const systemPrompt = `You are an expert curriculum designer and AI professor. 
 Based on the user's request, create a highly structured, comprehensive textbook outline.
-The outline should be deeply nested (level 1 = chapters, level 2 = sections, level 3 = sub-sections, etc.).
+The outline should be concise and well-structured, limited to Chapters and main Sections only (maximum 2 levels deep). Do not generate overly deep or exhaustive trees.
 Ensure each node has a unique 'id' (a short descriptive string without spaces, like 'chap1-intro').
 Return ONLY a valid JSON object matching this exact structure:
 {
