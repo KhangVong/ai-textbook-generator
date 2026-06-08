@@ -38,15 +38,11 @@ function assembleMarkdown(blocks: any[]): string {
  */
 export async function runPipeline(jobId: string, topic: string, outlineContext: string[], metadata: any, apiKey?: string, baseURL?: string, modelName?: string) {
   try {
-    const finalApiKey = apiKey || process.env.DEEPSEEK_API_KEY || 'sk-1c92c6d5afe1421ab07147f41128ac6c';
-    const finalBaseURL = !apiKey ? 'https://api.deepseek.com' : (baseURL || process.env.OPENAI_BASE_URL);
-    const finalModelName = !apiKey ? 'deepseek-v4-pro' : (modelName || 'gpt-4o');
-
     const openaiProvider = createOpenAI({
-      apiKey: finalApiKey,
-      baseURL: finalBaseURL,
+      apiKey: apiKey || process.env.OPENAI_API_KEY || '',
+      baseURL: baseURL || process.env.OPENAI_BASE_URL,
     });
-    const model = openaiProvider.chat(finalModelName);
+    const model = openaiProvider.chat(modelName || 'gpt-4o');
 
     const languageContext = metadata?.language || "the user's language (default to English unless Chinese context is given)";
     const outlineString = outlineContext?.length > 0 ? `The book contains the following chapters/sections in order:\n- ${outlineContext.join('\n- ')}\n\nYou are currently writing the section: "${topic}". Do NOT generate content that belongs to other sections.` : '';
@@ -125,7 +121,7 @@ Return ONLY a valid JSON object matching this exact schema:
     {
       "type": "text" | "diagram",
       "markdown": "string (only if type is text. You should freely embed LaTeX math using $ and $$ directly inside the markdown text. DO NOT create standalone formula blocks.)",
-      "mermaidCode": "string (only if type is diagram. RULES: 1. Use 'timeline' for historical/chronological events, NEVER use 'gantt' unless it's a real project schedule with exact YYYY-MM-DD dates. 2. Use 'flowchart' or 'mindmap' for concept maps. 3. CRITICAL: In flowcharts, ALWAYS wrap node labels in double quotes if they contain spaces, parentheses, or special characters to prevent syntax errors, e.g., A[\"Node Label (2024)\"].)",
+      "mermaidCode": "string (only if type is diagram. RULES: 1. Use 'timeline' for historical events. 2. Use 'flowchart' or 'mindmap' for concept maps. 3. CRITICAL: In flowcharts, ALL node labels MUST be wrapped in double quotes to prevent syntax errors, NO EXCEPTIONS. e.g., A[\"Node Label (2024)\"] instead of A[Node Label (2024)].)",
       "caption": "string (only if type is diagram)"
     }
   ]

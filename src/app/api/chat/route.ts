@@ -3,20 +3,20 @@ import { createOpenAI } from '@ai-sdk/openai';
 import { streamText, generateText } from 'ai';
 
 export const runtime = 'edge';
+export const maxDuration = 60;
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
     const { type, prompt, currentOutline, task } = body;
     
-    const apiKeyHeader = req.headers.get('X-OpenAI-Key');
-    const apiKey = apiKeyHeader || process.env.DEEPSEEK_API_KEY || 'sk-1c92c6d5afe1421ab07147f41128ac6c';
-    let baseURL = req.headers.get('X-Base-URL') || 'https://api.openai.com/v1';
-    let modelName = req.headers.get('X-Model-Name') || 'gpt-4o';
+    const apiKey = req.headers.get('X-OpenAI-Key');
+    const baseURL = req.headers.get('X-Base-URL') || 'https://api.openai.com/v1';
+    const modelName = req.headers.get('X-Model-Name') || 'gpt-4o';
 
-    if (!apiKeyHeader) {
-      baseURL = 'https://api.deepseek.com';
-      modelName = 'deepseek-v4-pro';
+    const isCustomUrl = baseURL && !baseURL.includes('api.openai.com');
+    if (!apiKey && !isCustomUrl) {
+      return NextResponse.json({ error: 'API Key is missing' }, { status: 401 });
     }
 
     const openai = createOpenAI({
@@ -129,7 +129,7 @@ Guidelines for using tools:
                 parameters: {
                   type: "object",
                   properties: {
-                    mermaid_code: { type: "string", description: "The Mermaid.js code. Must follow strict rules: wrap all node text in double quotes." }
+                    mermaid_code: { type: "string", description: "The Mermaid.js code. CRITICAL: In flowcharts, ALL node labels MUST be wrapped in double quotes to prevent syntax errors, e.g. A[\"Node Label\"] instead of A[Node Label]." }
                   },
                   required: ["mermaid_code"]
                 }
