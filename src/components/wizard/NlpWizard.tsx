@@ -23,11 +23,6 @@ export const NlpWizard = () => {
   const router = useRouter();
 
   const checkConfig = () => {
-    const isCustomUrl = baseURL && !baseURL.includes('api.openai.com');
-    if (!apiKey && !isCustomUrl) {
-      setError('Please configure your API Key first using the settings icon.');
-      return false;
-    }
     return true;
   };
 

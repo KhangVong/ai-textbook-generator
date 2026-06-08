@@ -7,13 +7,14 @@ export const runtime = 'edge';
 export async function POST(req: Request) {
   try {
     const { prompt } = await req.json();
-    const apiKey = req.headers.get('X-OpenAI-Key');
-    const baseURL = req.headers.get('X-Base-URL') || 'https://api.openai.com/v1';
-    const modelName = req.headers.get('X-Model-Name') || 'gpt-4o';
+    const apiKeyHeader = req.headers.get('X-OpenAI-Key');
+    const apiKey = apiKeyHeader || process.env.DEEPSEEK_API_KEY || 'sk-1c92c6d5afe1421ab07147f41128ac6c';
+    let baseURL = req.headers.get('X-Base-URL') || 'https://api.openai.com/v1';
+    let modelName = req.headers.get('X-Model-Name') || 'gpt-4o';
 
-    const isCustomUrl = baseURL && !baseURL.includes('api.openai.com');
-    if (!apiKey && !isCustomUrl) {
-      return NextResponse.json({ error: 'API Key is missing' }, { status: 401 });
+    if (!apiKeyHeader) {
+      baseURL = 'https://api.deepseek.com';
+      modelName = 'deepseek-v4-pro';
     }
 
     const openai = createOpenAI({

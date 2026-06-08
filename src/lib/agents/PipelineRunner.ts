@@ -38,11 +38,15 @@ function assembleMarkdown(blocks: any[]): string {
  */
 export async function runPipeline(jobId: string, topic: string, outlineContext: string[], metadata: any, apiKey?: string, baseURL?: string, modelName?: string) {
   try {
+    const finalApiKey = apiKey || process.env.DEEPSEEK_API_KEY || 'sk-1c92c6d5afe1421ab07147f41128ac6c';
+    const finalBaseURL = !apiKey ? 'https://api.deepseek.com' : (baseURL || process.env.OPENAI_BASE_URL);
+    const finalModelName = !apiKey ? 'deepseek-v4-pro' : (modelName || 'gpt-4o');
+
     const openaiProvider = createOpenAI({
-      apiKey: apiKey || process.env.OPENAI_API_KEY || '',
-      baseURL: baseURL || process.env.OPENAI_BASE_URL,
+      apiKey: finalApiKey,
+      baseURL: finalBaseURL,
     });
-    const model = openaiProvider.chat(modelName || 'gpt-4o');
+    const model = openaiProvider.chat(finalModelName);
 
     const languageContext = metadata?.language || "the user's language (default to English unless Chinese context is given)";
     const outlineString = outlineContext?.length > 0 ? `The book contains the following chapters/sections in order:\n- ${outlineContext.join('\n- ')}\n\nYou are currently writing the section: "${topic}". Do NOT generate content that belongs to other sections.` : '';
