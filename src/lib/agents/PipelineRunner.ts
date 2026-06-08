@@ -65,7 +65,6 @@ export async function runPipeline(jobId: string, topic: string, outlineContext: 
     await updateJobStatus(jobId, 'PROFILING');
     const blueprintRes = await generateText({
       model,
-      maxTokens: 8000,
       system: `You are a Chief Academic Officer. Create a strict blueprint for a textbook chapter.
 Return ONLY a valid JSON object matching this schema:
 {
@@ -97,7 +96,6 @@ Do not include any markdown formatting like \`\`\`json or explanations.`,
     await updateJobStatus(jobId, 'DRAFTING');
     const draftRes = await generateText({
       model,
-      maxTokens: 8000,
       system: `You are an expert textbook writer. Write the chapter using structured blocks.
 You MUST strictly follow this blueprint:
 - Word Count Target: ~${blueprint.targetWordCount} words
