@@ -27,24 +27,24 @@ export const DashboardClient: React.FC<DashboardClientProps> = ({ projects, erro
   );
 
   return (
-    <div className="min-h-screen bg-zinc-50 text-zinc-950 flex h-screen w-screen overflow-hidden selection:bg-blue-500/20 font-sans antialiased">
+    <div className="min-h-screen bg-zinc-50 text-zinc-950 flex h-screen w-screen overflow-hidden selection:bg-zinc-1000/20 font-sans antialiased">
       
       {/* Sleek Sidebar */}
       <aside className="w-64 border-r border-zinc-200 bg-white flex flex-col justify-between h-full shrink-0 z-20 shadow-sm">
         <div className="flex flex-col">
           {/* Logo */}
-          <div className="h-16 px-6 border-b border-zinc-100 flex items-center space-x-3 shrink-0">
-            <div className="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center font-bold shadow-md shadow-blue-600/20">
+          <Link href="/" className="h-16 px-6 border-b border-zinc-100 flex items-center space-x-3 shrink-0 hover:opacity-80 transition-opacity">
+            <div className="w-8 h-8 rounded-lg bg-zinc-900 text-white flex items-center justify-center font-bold shadow-md shadow-zinc-900/20">
               K
             </div>
             <span className="font-bold text-lg tracking-tight text-zinc-900">AnyKnowledge</span>
-          </div>
+          </Link>
 
           {/* Navigation */}
           <nav className="p-4 space-y-1">
             <Link 
               href="/dashboard" 
-              className="flex items-center space-x-3 px-3 py-2.5 rounded-lg bg-zinc-100/80 text-blue-600 font-medium transition-all"
+              className="flex items-center space-x-3 px-3 py-2.5 rounded-lg bg-zinc-100/80 text-zinc-900 font-medium transition-all"
             >
               <LayoutDashboard className="w-4 h-4" />
               <span className="text-sm">Projects</span>
@@ -81,7 +81,7 @@ export const DashboardClient: React.FC<DashboardClientProps> = ({ projects, erro
           </div>
           <Link 
             href="/editor" 
-            className="flex items-center space-x-2 text-sm bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition-all shadow-sm shadow-blue-600/20"
+            className="flex items-center space-x-2 text-sm bg-zinc-900 text-white px-4 py-2 rounded-lg font-medium hover:bg-zinc-800 transition-all shadow-sm shadow-zinc-900/20"
           >
             <Plus className="w-4 h-4" />
             <span>New Notebook</span>
@@ -103,7 +103,7 @@ export const DashboardClient: React.FC<DashboardClientProps> = ({ projects, erro
                 placeholder="Search notebooks..." 
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 pr-4 py-2 bg-white border border-zinc-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all w-full md:w-64"
+                className="pl-9 pr-4 py-2 bg-white border border-zinc-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900/10 focus:border-zinc-900 transition-all w-full md:w-64"
               />
             </div>
           </div>
@@ -120,7 +120,7 @@ export const DashboardClient: React.FC<DashboardClientProps> = ({ projects, erro
               animate={{ opacity: 1, y: 0 }}
               className="flex flex-col items-center justify-center py-24 px-4 text-center border-2 border-dashed border-zinc-200 rounded-2xl bg-white"
             >
-              <div className="w-16 h-16 bg-blue-50 border border-blue-100 rounded-full flex items-center justify-center mb-5 text-blue-600">
+              <div className="w-16 h-16 bg-zinc-100 border border-zinc-200 rounded-full flex items-center justify-center mb-5 text-zinc-900">
                 <BookOpen className="w-7 h-7" />
               </div>
               <h2 className="text-xl font-bold text-zinc-900 mb-2">No notebooks yet</h2>
@@ -144,18 +144,18 @@ export const DashboardClient: React.FC<DashboardClientProps> = ({ projects, erro
                 >
                   <Link 
                     href={`/book/${project.id}`} 
-                    className="group flex flex-col justify-between h-48 p-5 rounded-2xl bg-white border border-zinc-200 hover:border-blue-300 hover:shadow-xl hover:shadow-blue-500/5 transition-all duration-300 relative overflow-hidden"
+                    className="group flex flex-col justify-between h-48 p-5 rounded-2xl bg-white border border-zinc-200 hover:border-zinc-400 hover:shadow-xl hover:shadow-zinc-900/10 transition-all duration-300 relative overflow-hidden"
                   >
                     {/* Abstract subtle background decoration */}
-                    <div className="absolute -right-8 -top-8 w-24 h-24 bg-blue-50 rounded-full blur-2xl group-hover:bg-blue-100 transition-colors pointer-events-none" />
+                    <div className="absolute -right-8 -top-8 w-24 h-24 bg-zinc-100 rounded-full blur-2xl group-hover:bg-zinc-200 transition-colors pointer-events-none" />
                     
                     <div className="relative z-10">
                       <div className="flex items-start justify-between mb-3">
-                        <div className="w-10 h-10 rounded-xl bg-zinc-50 border border-zinc-100 text-zinc-600 flex items-center justify-center group-hover:bg-blue-50 group-hover:text-blue-600 group-hover:border-blue-100 transition-colors">
+                        <div className="w-10 h-10 rounded-xl bg-zinc-50 border border-zinc-100 text-zinc-600 flex items-center justify-center group-hover:bg-zinc-100 group-hover:text-zinc-900 group-hover:border-zinc-200 transition-colors">
                           <FileText className="w-5 h-5" />
                         </div>
                       </div>
-                      <h3 className="text-base font-bold text-zinc-900 line-clamp-2 mb-1 group-hover:text-blue-600 transition-colors leading-snug">
+                      <h3 className="text-base font-bold text-zinc-900 line-clamp-2 mb-1 group-hover:text-zinc-900 transition-colors leading-snug">
                         {project.title || "Untitled Notebook"}
                       </h3>
                     </div>
@@ -164,7 +164,7 @@ export const DashboardClient: React.FC<DashboardClientProps> = ({ projects, erro
                         <Clock className="w-3.5 h-3.5" />
                         <span>{new Date(project.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</span>
                       </div>
-                      <span className="text-zinc-400 group-hover:text-blue-500 transition-colors font-medium">Open &rarr;</span>
+                      <span className="text-zinc-400 group-hover:text-zinc-500 transition-colors font-medium">Open &rarr;</span>
                     </div>
                   </Link>
                 </motion.div>
