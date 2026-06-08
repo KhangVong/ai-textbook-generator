@@ -55,16 +55,15 @@ export const MindmapView = () => {
           data: { label: node.title },
           type: 'default',
           style: {
-            background: 'rgba(255, 255, 255, 0.05)',
-            backdropFilter: 'blur(10px)',
-            color: 'var(--foreground)',
-            border: '1px solid rgba(255, 255, 255, 0.1)',
+            background: 'white',
+            color: '#18181b', // zinc-900
+            border: '1px solid #e4e4e7', // zinc-200
             borderRadius: '12px',
             fontSize: '14px',
-            fontWeight: '500',
+            fontWeight: '600',
             width: 240,
             padding: '12px',
-            boxShadow: '0 8px 32px rgba(0,0,0,0.1)',
+            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05)',
             textAlign: 'left',
           }
         });
@@ -76,7 +75,7 @@ export const MindmapView = () => {
             target: node.id,
             type: 'smoothstep',
             animated: true,
-            style: { stroke: 'var(--primary)', strokeWidth: 2 }
+            style: { stroke: '#2563eb', strokeWidth: 2 } // blue-600
           });
         }
         
@@ -97,7 +96,7 @@ export const MindmapView = () => {
   }, [outline, setNodes, setEdges]);
 
   return (
-    <div className="w-full h-full bg-background/50">
+    <div className="w-full h-full bg-zinc-50/50">
       <ReactFlow 
         nodes={nodes} 
         edges={edges} 
@@ -108,7 +107,7 @@ export const MindmapView = () => {
         elementsSelectable={true}
         fitView
       >
-        <Background color="#ccc" gap={24} size={1.5} />
+        <Background color="#e4e4e7" gap={24} size={1.5} />
         <Controls showInteractive={false} />
       </ReactFlow>
     </div>

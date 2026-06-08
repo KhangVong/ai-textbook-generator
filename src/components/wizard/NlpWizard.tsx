@@ -2,10 +2,12 @@
 
 import React, { useState } from 'react';
 import { useTextbookStore, BookMetadata } from '@/store/useTextbookStore';
-import { BookOpen, Sparkles, Loader2, ArrowRight, UserCircle, MessageSquare, BookMarked, Compass } from 'lucide-react';
+import { BookOpen, Loader2, ArrowRight, UserCircle, MessageSquare, BookMarked, Compass } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import { useAuth } from '@clerk/nextjs';
 import { useRouter } from 'next/navigation';
+import { motion, AnimatePresence } from 'framer-motion';
+import { cn } from '@/lib/utils';
 
 export const NlpWizard = () => {
   const [prompt, setPrompt] = useState('');
@@ -23,7 +25,7 @@ export const NlpWizard = () => {
   const checkConfig = () => {
     const isCustomUrl = baseURL && !baseURL.includes('api.openai.com');
     if (!apiKey && !isCustomUrl) {
-      setError('Please configure your API Key first using the settings icon (in the bottom-left sidebar or settings top modal).');
+      setError('Please configure your API Key first using the settings icon.');
       return false;
     }
     return true;
@@ -70,7 +72,6 @@ export const NlpWizard = () => {
     setError(null);
     setStatus('GENERATING_OUTLINE');
 
-    // Save metadata to store
     setMetadata(localMetadata);
 
     try {
@@ -100,16 +101,7 @@ Prerequisites: ${localMetadata.prerequisites}
         throw new Error(`Failed to generate outline: ${errText}`);
       }
 
-      if (!response.body) throw new Error('Response body is empty');
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let responseText = '';
-      
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        responseText += decoder.decode(value, { stream: true });
-      }
+      const responseText = await response.text();
 
       let data;
       try {
@@ -171,30 +163,42 @@ Prerequisites: ${localMetadata.prerequisites}
   };
 
   return (
-    <div className="w-full max-w-2xl mx-auto px-4">
-      <div className="relative">
-        <div className="relative flex flex-col bg-card border border-border rounded-xl premium-shadow overflow-hidden min-h-[160px]">
-          
-          {isLoading && (
-            <div className="absolute inset-0 z-10 bg-card/95 backdrop-blur-md flex flex-col items-center justify-center p-8 text-center animate-in fade-in duration-200">
-              <Loader2 className="w-6 h-6 animate-spin text-foreground mb-4" />
-              <span className="text-sm font-medium tracking-tight text-foreground">
-                {step === 'INPUT' ? 'Agent 1: Profiler is analyzing target parameters...' : 'Agent 2: Architect is structure mapping the curriculum...'}
+    <div className="w-full relative">
+      <motion.div 
+        layout
+        className="bg-white border border-zinc-200 rounded-2xl shadow-xl shadow-zinc-200/50 overflow-hidden relative min-h-[140px] w-full"
+      >
+        <AnimatePresence mode="wait">
+          {isLoading ? (
+            <motion.div 
+              key="loading"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 z-10 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center p-8 text-center"
+            >
+              <Loader2 className="w-6 h-6 animate-spin text-blue-600 mb-4" />
+              <span className="text-sm font-medium text-zinc-700">
+                {step === 'INPUT' ? 'Agent 1: Profiling target parameters...' : 'Agent 2: Architect is structuring the curriculum...'}
               </span>
-            </div>
-          )}
-
-          {step === 'INPUT' && (
-            <div className="flex items-center w-full">
-              <div className="pl-5 text-muted-foreground">
-                <Compass className="w-5 h-5" />
+            </motion.div>
+          ) : step === 'INPUT' ? (
+            <motion.div 
+              key="input"
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              className="flex flex-col sm:flex-row items-center w-full p-2"
+            >
+              <div className="hidden sm:flex pl-4 text-zinc-400">
+                <Compass className="w-6 h-6" />
               </div>
               <input
                 type="text"
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
-                placeholder="What topic do you wish to master? E.g., Microeconomics..."
-                className="w-full px-4 py-6 bg-transparent focus:outline-none text-foreground placeholder-muted-foreground/60 text-base"
+                placeholder="What do you want to learn? e.g., Microeconomics..."
+                className="w-full px-4 py-5 bg-transparent focus:outline-none text-zinc-900 placeholder:text-zinc-400 text-lg sm:text-xl font-medium"
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') handleProfilePrompt();
                 }}
@@ -203,91 +207,100 @@ Prerequisites: ${localMetadata.prerequisites}
               <button
                 onClick={handleProfilePrompt}
                 disabled={isLoading || !prompt.trim()}
-                className="mr-3 shrink-0 flex items-center justify-center w-10 h-10 rounded-lg bg-primary text-primary-foreground hover:opacity-90 transition-all disabled:opacity-30 disabled:scale-100"
-                title="Next"
+                className={cn(
+                  "mt-2 sm:mt-0 mr-2 shrink-0 flex items-center justify-center w-full sm:w-12 h-12 rounded-xl text-white transition-all duration-200",
+                  prompt.trim() ? "bg-blue-600 hover:bg-blue-700 hover:scale-105 shadow-md shadow-blue-600/20" : "bg-zinc-200 text-zinc-400 cursor-not-allowed"
+                )}
               >
-                <ArrowRight className="w-4 h-4" />
+                <ArrowRight className="w-5 h-5" />
               </button>
-            </div>
-          )}
-
-          {step === 'PROFILE_CONFIRM' && (
-            <div className="p-6 flex flex-col space-y-6 animate-in fade-in duration-300">
-              <div className="flex items-center justify-between border-b border-border pb-4">
-                <h3 className="font-semibold text-sm tracking-tight flex items-center">
-                  <UserCircle className="w-4 h-4 mr-2" />
-                  Curriculum Persona settings
+            </motion.div>
+          ) : (
+            <motion.div 
+              key="confirm"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 20 }}
+              className="p-6 md:p-8 flex flex-col space-y-6"
+            >
+              <div className="flex items-center justify-between border-b border-zinc-100 pb-4">
+                <h3 className="font-bold text-zinc-900 flex items-center">
+                  <UserCircle className="w-5 h-5 mr-2 text-blue-500" />
+                  Curriculum Persona
                 </h3>
                 <button 
                   onClick={() => setStep('INPUT')}
-                  className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                  className="text-xs font-medium text-zinc-500 hover:text-zinc-900 transition-colors bg-zinc-100 hover:bg-zinc-200 px-3 py-1.5 rounded-full"
                 >
                   Edit Topic
                 </button>
               </div>
               
-              <div className="space-y-4">
-                <div className="space-y-1">
-                  <label className="text-xs font-medium text-muted-foreground flex items-center">
-                    <UserCircle className="w-3.5 h-3.5 mr-1.5" />
+              <div className="space-y-5 text-left">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold uppercase tracking-wider text-zinc-500 flex items-center">
                     Target Audience
                   </label>
                   <input
                     type="text"
                     value={localMetadata.targetAudience || ''}
                     onChange={(e) => setLocalMetadata({ ...localMetadata, targetAudience: e.target.value })}
-                    className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary transition-all"
+                    className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3 text-sm text-zinc-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium"
                   />
                 </div>
                 
-                <div className="space-y-1">
-                  <label className="text-xs font-medium text-muted-foreground flex items-center">
-                    <MessageSquare className="w-3.5 h-3.5 mr-1.5" />
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold uppercase tracking-wider text-zinc-500 flex items-center">
                     Tone & Style
                   </label>
                   <input
                     type="text"
                     value={localMetadata.tone || ''}
                     onChange={(e) => setLocalMetadata({ ...localMetadata, tone: e.target.value })}
-                    className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary transition-all"
+                    className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3 text-sm text-zinc-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium"
                   />
                 </div>
                 
-                <div className="space-y-1">
-                  <label className="text-xs font-medium text-muted-foreground flex items-center">
-                    <BookMarked className="w-3.5 h-3.5 mr-1.5" />
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold uppercase tracking-wider text-zinc-500 flex items-center">
                     Prerequisites
                   </label>
                   <input
                     type="text"
                     value={localMetadata.prerequisites || ''}
                     onChange={(e) => setLocalMetadata({ ...localMetadata, prerequisites: e.target.value })}
-                    className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary transition-all"
+                    className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3 text-sm text-zinc-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium"
                   />
                 </div>
               </div>
 
-              <div className="pt-2 flex justify-end">
+              <div className="pt-4 flex justify-end">
                 <button
                   onClick={handleGenerateOutline}
                   disabled={isLoading}
-                  className="px-5 py-2 bg-primary text-primary-foreground font-medium rounded-lg hover:opacity-90 transition-all text-sm flex items-center"
+                  className="w-full md:w-auto px-6 py-3 bg-zinc-900 text-white font-semibold rounded-xl hover:bg-zinc-800 transition-all text-sm flex items-center justify-center shadow-md hover:shadow-lg hover:-translate-y-0.5 duration-200"
                 >
                   <BookOpen className="w-4 h-4 mr-2" />
                   Generate Curriculum
                 </button>
               </div>
-            </div>
+            </motion.div>
           )}
-
-        </div>
-      </div>
+        </AnimatePresence>
+      </motion.div>
       
-      {error && (
-        <div className="mt-4 p-3 bg-red-500/5 border border-red-500/10 text-red-500 rounded-lg text-xs flex items-start">
-          {error}
-        </div>
-      )}
+      <AnimatePresence>
+        {error && (
+          <motion.div 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="absolute top-full left-0 right-0 mt-4 p-4 bg-red-50 border border-red-200 text-red-600 rounded-xl text-sm font-medium shadow-lg shadow-red-500/5 text-center"
+          >
+            {error}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

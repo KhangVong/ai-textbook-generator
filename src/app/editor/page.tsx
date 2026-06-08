@@ -2,24 +2,37 @@
 
 import { AppLayout } from "@/components/layout/AppLayout";
 import { NlpWizard } from "@/components/wizard/NlpWizard";
+import { motion } from "framer-motion";
 
 export default function NewProjectPage() {
   return (
     <AppLayout>
-      <div className="flex-1 flex items-center justify-center relative overflow-hidden">
-        {/* Ambient Background for premium feel */}
-        <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-primary/20 blur-[120px] rounded-full pointer-events-none" />
-        <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-blue-500/20 blur-[120px] rounded-full pointer-events-none" />
+      <div className="flex-1 flex items-center justify-center relative bg-zinc-50/50">
         
-        <div className="glassmorphism p-10 rounded-3xl premium-shadow max-w-2xl w-full text-center relative z-10 border border-white/10 dark:border-white/5">
-          <h2 className="text-4xl font-extrabold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-primary via-blue-500 to-purple-600">
-            Start Your Learning Journey
-          </h2>
-          <p className="text-muted-foreground mb-10 text-lg">
-            Enter a topic, and we'll generate a complete, structured textbook for you.
-          </p>
-          <NlpWizard />
+        {/* Subtle Background Pattern / Gradient */}
+        <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
+          <div className="absolute -top-[10%] -left-[5%] w-[40%] h-[40%] bg-blue-100 blur-[100px] rounded-full opacity-60" />
+          <div className="absolute top-[20%] right-[0%] w-[30%] h-[30%] bg-purple-100 blur-[100px] rounded-full opacity-50" />
         </div>
+        
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.98, y: 10 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          transition={{ duration: 0.5, ease: "easeOut" }}
+          className="relative z-10 w-full max-w-2xl px-4"
+        >
+          <div className="text-center mb-8">
+            <h2 className="text-3xl font-extrabold mb-3 text-zinc-900 tracking-tight">
+              Create a new textbook
+            </h2>
+            <p className="text-zinc-500 text-base max-w-md mx-auto">
+              Enter a topic, and our multi-agent system will generate a structured, comprehensive learning module.
+            </p>
+          </div>
+          
+          <NlpWizard />
+        </motion.div>
+        
       </div>
     </AppLayout>
   );

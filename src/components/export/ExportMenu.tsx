@@ -89,6 +89,13 @@ export const ExportMenu = () => {
               {isExporting ? <Loader2 className="w-4 h-4 mr-3 animate-spin" /> : <Book className="w-4 h-4 mr-3" />}
               EPUB eBook (.epub)
             </button>
+            <button
+              onClick={() => { window.print(); setIsOpen(false); }}
+              className="flex items-center w-full px-3 py-2 text-sm text-left hover:bg-primary/10 hover:text-primary rounded-lg transition-colors"
+            >
+              <Download className="w-4 h-4 mr-3" />
+              PDF (Print)
+            </button>
           </div>
         </div>
       )}

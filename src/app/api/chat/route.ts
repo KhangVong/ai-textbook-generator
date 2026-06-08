@@ -36,7 +36,17 @@ export async function POST(req: Request) {
 Based on the user's request, create a highly structured, comprehensive textbook outline.
 The outline should be deeply nested (level 1 = chapters, level 2 = sections, level 3 = sub-sections, etc.).
 Ensure each node has a unique 'id' (a short descriptive string without spaces, like 'chap1-intro').
-Return ONLY a valid JSON object matching this structure: { "outline": [ ... ] }. Do not include any markdown formatting, backticks, or explanation.`;
+Return ONLY a valid JSON object matching this exact structure:
+{
+  "outline": [
+    {
+      "id": "string",
+      "title": "string",
+      "children": [ ... ]
+    }
+  ]
+}
+Do not include any markdown formatting, backticks, or explanation. Ensure all array elements are properly wrapped in curly braces.`;
       
       const messages = [
         { role: 'system', content: systemPrompt },
@@ -53,7 +63,9 @@ Return ONLY a valid JSON object matching this structure: { "outline": [ ... ] }.
           model: modelName,
           messages,
           temperature: 0.1,
-          stream: true,
+          stream: false,
+          max_tokens: 8000,
+          response_format: { type: "json_object" }
         })
       });
 
@@ -62,40 +74,11 @@ Return ONLY a valid JSON object matching this structure: { "outline": [ ... ] }.
         throw new Error(`Outline API Error: ${err}`);
       }
 
-      const encoder = new TextEncoder();
-      const customStream = new ReadableStream({
-        async start(controller) {
-          const reader = res.body!.getReader();
-          const decoder = new TextDecoder();
-          
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            
-            const chunk = decoder.decode(value, { stream: true });
-            const lines = chunk.split('\n').filter(line => line.trim() !== '');
-            
-            for (const line of lines) {
-              if (line.startsWith('data: ') && line !== 'data: [DONE]') {
-                try {
-                  const data = JSON.parse(line.slice(6));
-                  if (data.choices && data.choices.length > 0) {
-                    const delta = data.choices[0].delta;
-                    if (delta.content) {
-                      controller.enqueue(encoder.encode(delta.content));
-                    }
-                  }
-                } catch (e) {
-                  // Ignore partial JSON
-                }
-              }
-            }
-          }
-          controller.close();
-        }
-      });
+      const data = await res.json();
+      const content = data.choices[0].message.content;
 
-      return new Response(customStream, { headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
+      // We send it back as plain text so the frontend handles it the exact same way it did before
+      return new Response(content, { headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
     }
     if (type === 'generate_chapter') {
       const { targetAudience, tone, outlineContext } = body;

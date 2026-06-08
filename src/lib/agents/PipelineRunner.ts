@@ -18,25 +18,25 @@ async function updateJobStatus(jobId: string, status: string, additionalData: an
 /**
  * Assembles the Structured JSON Blocks into final Markdown
  */
-function assembleMarkdown(blocks: ContentBlock[]): string {
-  let markdown = "";
+function assembleMarkdown(blocks: any[]): string {
+  let markdown = '';
   for (const block of blocks) {
     if (block.type === 'text') {
       markdown += `${block.markdown}\n\n`;
-    } else if (block.type === 'formula') {
-      markdown += `${sanitizeLatex(block.latex, block.isBlock)}\n\n`;
     } else if (block.type === 'diagram') {
-      if (block.caption) markdown += `*${block.caption}*\n`;
+      if (block.caption) {
+        markdown += `*${block.caption}*\n`;
+      }
       markdown += `\`\`\`mermaid\n${block.mermaidCode}\n\`\`\`\n\n`;
     }
   }
-  return markdown;
+  return markdown.trim();
 }
 
 /**
  * Core Background Execution Pipeline
  */
-export async function runPipeline(jobId: string, topic: string, apiKey?: string, baseURL?: string, modelName?: string) {
+export async function runPipeline(jobId: string, topic: string, outlineContext: string[], metadata: any, apiKey?: string, baseURL?: string, modelName?: string) {
   try {
     const openaiProvider = createOpenAI({
       apiKey: apiKey || process.env.OPENAI_API_KEY || '',
@@ -44,16 +44,17 @@ export async function runPipeline(jobId: string, topic: string, apiKey?: string,
     });
     const model = openaiProvider.chat(modelName || 'gpt-4o');
 
+    const languageContext = metadata?.language || "the user's language (default to English unless Chinese context is given)";
+    const outlineString = outlineContext?.length > 0 ? `The book contains the following chapters/sections in order:\n- ${outlineContext.join('\n- ')}\n\nYou are currently writing the section: "${topic}". Do NOT generate content that belongs to other sections.` : '';
+
     // ==========================================
     // STAGE 1: RESEARCHING (Web Search)
     // ==========================================
     await updateJobStatus(jobId, 'RESEARCHING');
     const researchCtx = await generateText({
       model,
-      system: 'You are an academic researcher. Search for the latest and most accurate syllabus, facts, or breakthroughs on the given topic. Return a concise summary of facts.',
+      system: `You are an academic researcher. Search for the latest and most accurate syllabus, facts, or breakthroughs on the given topic. Return a concise summary of facts in ${languageContext}. \n\n${outlineString}`,
       prompt: `Topic: ${topic}`,
-      // @ts-ignore - mismatch in AI SDK typings for tools
-      // tools: { webSearchTool },
     });
 
     const contextDocs = researchCtx.text;
@@ -62,34 +63,83 @@ export async function runPipeline(jobId: string, topic: string, apiKey?: string,
     // STAGE 2: PROFILING (Generate Blueprint)
     // ==========================================
     await updateJobStatus(jobId, 'PROFILING');
-    const blueprintRes = await generateObject({
+    const blueprintRes = await generateText({
       model,
-      // @ts-ignore - Vercel AI SDK types mismatch for mode property
-      mode: 'json',
-      schema: BlueprintSchema,
-      system: 'You are a Chief Academic Officer. Create a strict blueprint for a textbook chapter.',
-      prompt: `Topic: ${topic}\n\nResearch Context:\n${contextDocs}`,
+      maxTokens: 8000,
+      system: `You are a Chief Academic Officer. Create a strict blueprint for a textbook chapter.
+Return ONLY a valid JSON object matching this schema:
+{
+  "title": "string",
+  "targetWordCount": "number",
+  "requiredTopics": ["string"],
+  "recommendedTone": "string"
+}
+Do not include any markdown formatting like \`\`\`json or explanations.`,
+      prompt: `Topic: ${topic}\n\n${outlineString}\n\nResearch Context:\n${contextDocs}\n\nMetadata Profile: ${JSON.stringify(metadata)}`,
     });
-    const blueprint = blueprintRes.object;
+    
+    let blueprintStr = blueprintRes.text.trim();
+    if (blueprintStr.startsWith('```json')) blueprintStr = blueprintStr.replace(/^```json\n?/, '').replace(/\n?```$/, '');
+    else if (blueprintStr.startsWith('```')) blueprintStr = blueprintStr.replace(/^```\n?/, '').replace(/\n?```$/, '');
+    
+    let blueprint;
+    try {
+      blueprint = JSON.parse(blueprintStr);
+    } catch(e) {
+      blueprint = { title: topic, targetWordCount: 1500, requiredTopics: [], recommendedTone: 'Academic' };
+    }
+    
     await updateJobStatus(jobId, 'PROFILING', { blueprint });
 
     // ==========================================
     // STAGE 3: DRAFTING (Structured Output)
     // ==========================================
     await updateJobStatus(jobId, 'DRAFTING');
-    // In a real advanced app, we might loop this. For now, a robust single pass using structured outputs.
-    const draftRes = await generateObject({
+    const draftRes = await generateText({
       model,
-      // @ts-ignore - Vercel AI SDK types mismatch for mode property
-      mode: 'json',
-      schema: ChapterContentSchema,
+      maxTokens: 8000,
       system: `You are an expert textbook writer. Write the chapter using structured blocks.
-      You MUST strictly follow this blueprint:
-      - Word Count Target: ~${blueprint.targetWordCount} words
-      - Tone: ${blueprint.recommendedTone}
-      - Required Concepts: ${blueprint.requiredTopics.join(', ')}`,
+You MUST strictly follow this blueprint:
+- Word Count Target: ~${blueprint.targetWordCount} words
+- Tone: ${blueprint.recommendedTone || metadata?.tone || 'Academic'}
+- Language: ${languageContext}
+- Required Concepts: ${blueprint.requiredTopics.join(', ')}
+
+${outlineString}
+
+CRITICAL RULES FOR CONTENT:
+1. DO NOT generate the section title at the top (e.g. # ${topic}). The frontend already renders the title. Start directly with the content.
+2. For inline math, you MUST ONLY use $...$. Do NOT use \\(...\\).
+3. For block equations, you MUST ONLY use $$...$$. Do NOT use \\[...\\] or markdown code blocks for equations.
+4. Strictly maintain the professional depth and adhere to the target word count (${blueprint.targetWordCount} words) to ensure consistency across chapters.
+5. You MUST include a "Conclusion" or "Summary" section at the end of the content.
+6. You MAY include a "Recommended Reading" or "References" section at the very end if applicable.
+
+Return ONLY a valid JSON object matching this exact schema:
+{
+  "blocks": [
+    {
+      "type": "text" | "diagram",
+      "markdown": "string (only if type is text. You should freely embed LaTeX math using $ and $$ directly inside the markdown text. DO NOT create standalone formula blocks.)",
+      "mermaidCode": "string (only if type is diagram. RULES: 1. Use 'timeline' for historical/chronological events, NEVER use 'gantt' unless it's a real project schedule with exact YYYY-MM-DD dates. 2. Use 'flowchart' or 'mindmap' for concept maps. 3. CRITICAL: In flowcharts, ALWAYS wrap node labels in double quotes if they contain spaces, parentheses, or special characters to prevent syntax errors, e.g., A[\"Node Label (2024)\"].)",
+      "caption": "string (only if type is diagram)"
+    }
+  ]
+}
+Do not include any markdown formatting like \`\`\`json or explanations. Ensure the JSON is completely valid.`,
       prompt: `Write the chapter for: ${blueprint.title}\n\nResearch Background:\n${contextDocs}`,
     });
+
+    let draftStr = draftRes.text.trim();
+    if (draftStr.startsWith('```json')) draftStr = draftStr.replace(/^```json\n?/, '').replace(/\n?```$/, '');
+    else if (draftStr.startsWith('```')) draftStr = draftStr.replace(/^```\n?/, '').replace(/\n?```$/, '');
+    
+    let draftObject;
+    try {
+      draftObject = JSON.parse(draftStr);
+    } catch(e) {
+      draftObject = { blocks: [{ type: 'text', markdown: 'Failed to generate chapter content. Please try again.' }] };
+    }
 
     // ==========================================
     // STAGE 4: VERIFYING (Quality & Fact Check)
@@ -97,7 +147,7 @@ export async function runPipeline(jobId: string, topic: string, apiKey?: string,
     await updateJobStatus(jobId, 'VERIFYING');
     // Here we assemble and theoretically ask a Critic agent to review.
     // For this hackathon/MVP version, we assume the Structured Output constraint & RAG inherently fixed most errors.
-    const finalMarkdown = assembleMarkdown(draftRes.object.blocks);
+    const finalMarkdown = assembleMarkdown(draftObject.blocks);
 
     // ==========================================
     // STAGE 5: COMPLETED

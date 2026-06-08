@@ -50,12 +50,14 @@ export const useGenerationEngine = () => {
         updateNodeContent(node.id, `> **⏳ 初始化后台作业...**\n\n`);
         
         // 1. Create Job
+        const currentState = useTextbookStore.getState();
         const generateRes = await fetch('/api/generate', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
             topic: node.title, 
-            outlineContext: [],
+            outlineContext: allNodes.map(n => n.title),
+            metadata: currentState.metadata,
             apiKey,
             baseURL,
             modelName
@@ -97,7 +99,7 @@ export const useGenerationEngine = () => {
               'VERIFYING': 'Quality-Checker 正在严格把关字数与格式...'
             };
             const friendlyStatus = statusMap[job.status] || job.status;
-            updateNodeContent(node.id, `> **⏳ 后台流水线执行中: ${friendlyStatus}**\n\n请耐心等待，我们正在保证内容的绝对准确。`);
+            updateNodeContent(node.id, `> **⏳ 后台流水线执行中: ${friendlyStatus}**\n\n`);
           }
         }
         

@@ -4,7 +4,7 @@ import { runPipeline } from '@/lib/agents/PipelineRunner';
 
 export async function POST(req: Request) {
   try {
-    const { topic, outlineContext, apiKey, baseURL, modelName } = await req.json();
+    const { topic, outlineContext, metadata, apiKey, baseURL, modelName } = await req.json();
 
     if (!topic) {
       return NextResponse.json({ error: 'Topic is required' }, { status: 400 });
@@ -23,7 +23,7 @@ export async function POST(req: Request) {
     }
 
     // 2. Start Background Task (Do NOT await it)
-    runPipeline(job.id, topic, apiKey, baseURL, modelName).catch(console.error);
+    runPipeline(job.id, topic, outlineContext, metadata, apiKey, baseURL, modelName).catch(console.error);
 
     // 3. Return Job ID to client for polling
     return NextResponse.json({ jobId: job.id });
