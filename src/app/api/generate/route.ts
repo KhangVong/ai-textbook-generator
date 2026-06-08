@@ -3,7 +3,6 @@ import { supabase } from '@/lib/supabase';
 import { runPipeline } from '@/lib/agents/PipelineRunner';
 
 export const runtime = 'edge';
-export const maxDuration = 60;
 
 export async function POST(req: Request) {
   try {
