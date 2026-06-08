@@ -51,43 +51,45 @@ export const useGenerationEngine = () => {
 
       const p = (async () => {
         try {
-          updateNodeContent(node.id, `> **⏳ 初始化后台作业...**\n\n`);
+          updateNodeContent(node.id, `> **⏳ 大模型流式思考中...**\n\n`);
           
-          // 1. Direct Stream Generation
           const currentState = useTextbookStore.getState();
-          const generateRes = await fetch('/api/generate-stream', {
+          const generateRes = await fetch('/api/chat', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+              'Content-Type': 'application/json',
+              'X-OpenAI-Key': apiKey,
+              'X-Base-URL': baseURL,
+              'X-Model-Name': modelName
+            },
             body: JSON.stringify({ 
-              topic: node.title, 
+              type: 'generate_chapter',
+              prompt: node.title,
               outlineContext: allNodes.map(n => n.title),
               metadata: currentState.metadata,
-              apiKey,
-              baseURL,
-              modelName
             }),
             signal: abortControllerRef.current?.signal
           });
 
-          if (!generateRes.ok || !generateRes.body) throw new Error('Failed to start stream');
+          if (!generateRes.ok) {
+            const err = await generateRes.text();
+            throw new Error(err);
+          }
           
+          if (!generateRes.body) throw new Error('No response body');
+
           const reader = generateRes.body.getReader();
           const decoder = new TextDecoder();
-          let currentContent = '';
-          
+          let fullText = '';
+
           while (true) {
-            if (abortControllerRef.current?.signal.aborted) {
-              reader.cancel();
-              break;
-            }
-            
             const { done, value } = await reader.read();
             if (done) break;
             
-            currentContent += decoder.decode(value, { stream: true });
-            updateNodeContent(node.id, currentContent);
+            fullText += decoder.decode(value, { stream: true });
+            updateNodeContent(node.id, fullText);
           }
-        
+          
         } catch (err: any) {
           if (err.name === 'AbortError' || err.message.includes('aborted')) {
             console.log('Generation aborted by user.');
