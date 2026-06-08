@@ -33,12 +33,12 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
             <span className="text-sm font-medium hidden sm:block">Dashboard</span>
           </Link>
           <div className="w-[1px] h-4 bg-zinc-200 hidden sm:block" />
-          <div className="flex items-center space-x-2">
+          <Link href="/" className="flex items-center space-x-2 hover:opacity-80 transition-opacity">
             <div className="w-6 h-6 rounded bg-zinc-900 text-white flex items-center justify-center font-bold text-xs shadow-sm">
               K
             </div>
             <h1 className="font-bold text-sm hidden md:block text-zinc-900">AnyKnowledge</h1>
-          </div>
+          </Link>
         </div>
 
         {/* Center: View Switcher */}
